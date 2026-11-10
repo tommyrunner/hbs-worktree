@@ -64,6 +64,10 @@ window.__ModuleLoader__.load({
       add: 'New worktree',
       remove: 'Delete',
       unbound: 'Unbound',
+      autoCommitOn: 'Auto',
+      autoCommitOff: 'Manual',
+      autoCommitHint: 'Auto-commit: the session commits and pushes when the requirement is done. Off: you commit by hand, and switching to it will be refused while dirty.',
+      okAutoCommit: 'Auto-commit setting saved',
       running: 'Running',
       done: 'Finished',
       loading: 'Loading…',
@@ -124,6 +128,10 @@ window.__ModuleLoader__.load({
       add: '新增工作树',
       remove: '删除',
       unbound: '未绑定',
+      autoCommitOn: '自动提交',
+      autoCommitOff: '手动提交',
+      autoCommitHint: '自动提交：会话做完需求自己提交并推送。手动提交：你自己提交；工作树有未提交改动时不允许切过去。',
+      okAutoCommit: '自动提交设置已保存',
       running: '运行中',
       done: '已完成',
       loading: '加载中…',
@@ -270,7 +278,10 @@ window.__ModuleLoader__.load({
     };
     const tableStyle = { width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' };
     /** Branch / session / note / status / actions — the table owns these, not the cells. */
-    const COLUMN_WIDTHS = ['20%', '34%', '24%', '10%', '12%'];
+    const COLUMN_WIDTHS = ['16%', '29%', '17%', '11%', '27%'];
+    /** Two controls in one cell: the auto-commit picker and the delete action. */
+    const actionGroupStyle = { display: 'inline-flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' };
+    const actionSelectStyle = { width: 92, height: 26, fontSize: 11.5 };
     const rowHover = { cursor: 'default' };
     const thStyle = {
       textAlign: 'left',
@@ -436,7 +447,7 @@ window.__ModuleLoader__.load({
         '请先读取并严格遵守 hbs-worktree skill。',
         '本会话已绑定工作树分支 ' + String(branch || '') + '，工作目录是 ' + String(path || '') + '。',
         '所有文件操作只能用该目录下的绝对路径，所有 git 命令用 git -C ' + String(path || '') + '，',
-        '不要修改主业务代码目录里的任何文件；收尾时提交并推送，合并在面板上由我来做。',
+        '不要修改主业务代码目录里的任何文件；需求完成时按 skill 的规则提交并推送（默认要提交），合并在面板上由我来做。',
       ].join('\n');
     }
 
@@ -513,6 +524,7 @@ window.__ModuleLoader__.load({
             opacity: props.disabled ? 0.5 : 1,
           }),
           value: props.value,
+          title: props.title,
           disabled: props.disabled,
           onChange: props.onChange,
         }, props.options.map((option) => h('option', { key: option.value, value: option.value }, option.label))),
@@ -620,12 +632,25 @@ window.__ModuleLoader__.load({
             ? h('span', { style: mutedText }, '—')
             : (known.running === true ? h(Tag, { tone: 'ok' }, t('running')) : h(Tag, null, t('done')))),
         h('td', { style: Object.assign({}, cell, { textAlign: 'right' }) },
-          h('button', Object.assign({
-            type: 'button',
-            style: smallButton('danger'),
-            title: exists ? undefined : t('missingDir'),
-            onClick: () => props.onRemove(row),
-          }, hoverable('danger')), t('remove'))));
+          h('span', { style: actionGroupStyle },
+            h(Select, {
+              value: row.autoCommit === false ? 'off' : 'on',
+              wrapperStyle: { flex: 'none' },
+              controlStyle: actionSelectStyle,
+              title: t('autoCommitHint'),
+              disabled: !exists,
+              options: [
+                { value: 'on', label: t('autoCommitOn') },
+                { value: 'off', label: t('autoCommitOff') },
+              ],
+              onChange: (event) => props.onAutoCommit(row, event.target.value === 'on'),
+            }),
+            h('button', Object.assign({
+              type: 'button',
+              style: smallButton('danger'),
+              title: exists ? undefined : t('missingDir'),
+              onClick: () => props.onRemove(row),
+            }, hoverable('danger')), t('remove')))));
     }
 
     /** Modal asking for branch name, session and note; the engine's refusal stays inline. */
@@ -851,6 +876,18 @@ window.__ModuleLoader__.load({
         setNotice({ tone: 'bad', text: errorText(t, result.error), files: [] });
       };
 
+      // Auto-commit is a per-worktree setting the session reads through
+      // `hbs-wt env`, so changing it here changes what the agent does next.
+      const changeAutoCommit = async (row, autoCommit) => {
+        setNotice(null);
+        const result = await actions.run('update', { branch: String(row.branch || ''), autoCommit: autoCommit });
+        if (result.ok === true) {
+          setNotice({ tone: 'ok', text: t('okAutoCommit') + ' · ' + String(row.branch || '') + ' · ' + (autoCommit ? t('autoCommitOn') : t('autoCommitOff')), files: [] });
+          return;
+        }
+        setNotice({ tone: 'bad', text: errorText(t, result.error), files: [] });
+      };
+
       const everyBranch = base === '' ? [] : [base].concat(worktrees.map((row) => String(row.branch || '')).filter((branch) => branch !== '' && branch !== base));
       const branchOptions = base === '' ? [] : [{ value: base, label: base + ' · ' + t('mainLine') }]
         .concat(worktrees.map((row) => String(row.branch || '')).filter((branch) => branch !== '' && branch !== base).map((branch) => ({ value: branch, label: branch })));
@@ -998,6 +1035,7 @@ window.__ModuleLoader__.load({
             row: row,
             sessionById: sessionById,
             isLast: index === worktrees.length - 1,
+            onAutoCommit: (target, autoCommit) => void changeAutoCommit(target, autoCommit),
             onRemove: (target) => setDialog({ kind: 'remove', branch: String(target.branch || '') }),
           }));
         tableArea = h('div', { style: tableWrapStyle },

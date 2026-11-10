@@ -90,8 +90,16 @@ async function render() {
 
   const store = (snapshot) => ({ getSnapshot: () => snapshot, subscribe: () => () => {} });
   let renderer;
+  // The page registers its own dictionaries; bind to the real English one so the
+  // screenshot shows labels instead of dictionary keys.
+  let dictionaries = { en: {} };
   factory.apply({
-    locale: { bind: () => (key) => key, register: () => {} },
+    locale: {
+      bind: () => (key) => (dictionaries.en && dictionaries.en[key] !== undefined ? dictionaries.en[key] : key),
+      register: (_namespace, dicts) => {
+        dictionaries = dicts;
+      },
+    },
     effect: (run) => { run(); },
     sessions: { list: store(SESSIONS) },
     workspaces: { list: store(WORKSPACES) },

@@ -26,6 +26,7 @@ hbs-worktree makes the requirement a first-class thing: its own directory, its o
 | Lock the directory | Nothing | The session's first message tells the agent to read the `hbs-worktree` skill and only touch absolute paths under `.worktree/<branch>` |
 | Preview | Switch the branch picker | The main checkout shows that branch and can run; "back to main line" restores it |
 | Merge | Merge dialog: source + target | Plain `git merge`; a conflict rolls back and lists the files |
+| Commit | The actions dropdown: auto / manual (auto by default) | Auto: the session commits and pushes when done. Manual: you commit yourself |
 | Clean up | Delete + confirm | Removes directory and branch; uncommitted or unmerged work needs a second confirmation |
 
 ## How it works
@@ -88,6 +89,7 @@ npm pack          # produces hbs-worktree-<version>.tgz, install that with the p
 2. **+ New worktree** — branch `dev-a`, session name, optional note.
    *Effect: branch created, checked out under `.worktree/dev-a`, a session created in this workspace, named, bound, revealed, and given its first instruction — in one click.*
 3. **Work in that session** — the agent edits `.worktree/dev-a` only; the main code is untouched and the status column shows whether the session is running.
+   When the requirement is done the session **commits and pushes by default**: it is a separate branch, so committing cannot touch the main code, while *not* committing means a preview is refused (dirty worktree) and the work is invisible. Switch the actions dropdown to "Manual" to opt out.
 4. **Preview** — switch the branch picker to `dev-a`.
    *Effect: the main checkout shows that branch, so a dev server runs it; "back to main line" restores the base branch.*
 5. **Merge** — pick source and target (the base branch by default).
@@ -123,7 +125,7 @@ hbs-wt prune                       # drop stale worktree metadata
 
 ## Session protocol
 
-The `hbs-worktree` skill ships with the plugin and states six rules: confirm the binding before writing, use absolute paths under the returned `root`, run git as `git -C <root>`, never switch or merge, report conflicts verbatim, commit and push when done.
+The `hbs-worktree` skill ships with the plugin and states seven rules: confirm the binding before writing, use absolute paths under the returned `root`, run git as `git -C <root>`, **commit when the requirement is done** (unless the worktree opted out of auto-commit), never switch or merge, report conflicts verbatim, and report what changed.
 
 ## State
 
@@ -134,6 +136,7 @@ The `hbs-worktree` skill ships with the plugin and states six rules: confirm the
 - **`git status` says `HEAD (no branch)` while previewing** — the branch is checked out elsewhere; content is right, commits belong in the worktree.
 - **No `node_modules` in a worktree** — `git worktree add` checks out tracked files only; install what you need there.
 - **Switching or merging needs a clean main checkout** — otherwise the dirty tree would be overwritten.
+- **"The worktree has uncommitted changes" when previewing** — a preview shows committed content only, so the panel refuses instead of hiding your work; commit first (that is why auto-commit is the default).
 - **You cannot merge into a worktree branch** — git will not check out that branch twice.
 - **Never run `git clean -xdf` in the main checkout** — `-x` would delete `.worktree/`.
 - **Do other users need to install the skill separately?** No — it is registered by the plugin.

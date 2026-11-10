@@ -52,7 +52,8 @@ git 命令直接在主业务代码目录里执行。本文件覆盖 v1 中冲突
 | --- | --- | --- |
 | `repo` | `{}` | `{ root, isGit, base, preview, currentBranch, detached, dirty }` |
 | `list` | `{}` | `{ root, isGit, base, preview, currentBranch, detached, dirty, worktrees: [row] }` |
-| `add` | `{ branch, session?, note? }` | `{ worktree: row }` |
+| `add` | `{ branch, session?, note?, autoCommit? }` | `{ worktree: row }` |
+| `update` | `{ branch, autoCommit }` | `{ branch, autoCommit }` |
 | `remove` | `{ branch, force? }` | `{ branch, removed: true }` |
 | `switch` | `{ branch }` | `{ branch, base, preview, changed, detached }` |
 | `merge` | `{ from, into }` | `{ from, into, merged: true }` |
@@ -71,6 +72,7 @@ git 命令直接在主业务代码目录里执行。本文件覆盖 v1 中冲突
   "path": "/项目/.worktree/A-a",
   "session": "session-6742…",
   "note": "解析器重写",
+  "autoCommit": true,
   "createdAt": "2026-11-10T02:00:00.000Z",
   "exists": true,
   "dirty": false,
@@ -79,6 +81,8 @@ git 命令直接在主业务代码目录里执行。本文件覆盖 v1 中冲突
 ```
 
 `exists` 为 false 表示元数据还在但目录没了（可 `prune`）；`ahead` 是相对 `base` 的领先提交数。
+`autoCommit` 默认 `true`：会话收尾自己提交并推送；用户可在操作列切成 `false`，此时会话不提交，
+且 `switch` 会因工作树脏被拒绝（切过去也看不到未提交内容）。
 
 ### 预览 vs 切换
 
@@ -139,7 +143,8 @@ git 命令直接在主业务代码目录里执行。本文件覆盖 v1 中冲突
   任何一步失败都要说清：工作树已建、会话未成，让用户自己补。
 - **表格列**：分支 / 会话 / 备注 / 状态 / 操作。
   - 状态：会话 `running === true` → 「运行中」，否则「已完成」；未绑定会话显示「—」。
-  - 操作：只有「删除」，二次确认后执行 `remove`；返回 `unmerged-commits` 时提示确认后可强制删。
+  - 操作：两个控件——「自动提交 / 手动提交」下拉（执行 `update`）+「删除」（二次确认后执行 `remove`；
+    返回 `unmerged-commits` / `worktree-dirty` 时提示确认后可强制删）。
 - **空态**：表格空 + 「新增工作树」。
 - **非 git**：顶部提示，页面其余部分不渲染。
 
@@ -147,13 +152,19 @@ git 命令直接在主业务代码目录里执行。本文件覆盖 v1 中冲突
 `byId[sessionId]` 有 `title`、`running`、`cwd`、`blank`；归档集合在
 `ctx.workspaces.list.getSnapshot().archivedSessionIds`。
 
-## 5. 会话归属
+## 5. 提交规则
+
+会话做完需求必须提交（`autoCommit: true`，默认）：分支独立，提交不影响主业务代码；不提交则
+`switch` 会以 `worktree-dirty` 拒绝（预览只显示已提交内容），成果也看不见。
+`autoCommit: false` 时会话不得提交，改为提示用户手动提交。
+
+## 6. 会话归属
 
 新建的会话用 `workspaceId` 挂在**面板当前选中的 Harness 工作区**下（不是 `cwd`），
 所以它出现在那个项目里；「只操作工作树目录」由 skill 的纪律约束，而不是物理 cwd。
 `cwd` 方案（会话根目录直接是工作树）隔离更强，但会话归类会脱离项目，v2 不采用。
 
-## 6. skill 协议（随插件分发）
+## 7. skill 协议（随插件分发）
 
 绑定后 agent 只在 `<root>/.worktree/<branch>` 里干活，全部用绝对路径、`git -C`，收尾仍走 CLI。
 主业务分支由用户在面板上合并，agent 不碰。

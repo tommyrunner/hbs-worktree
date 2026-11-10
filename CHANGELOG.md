@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.6.0 — 2026-11-10
+
+- **Auto-commit is now a per-worktree setting**, on by default and switched from the
+  actions column (`update` command). The skill asks the session to commit and push when
+  the requirement is done — a separate branch cannot touch the main code, while *not*
+  committing leaves the work invisible and makes a preview fail.
+- `switch` refuses to preview a worktree with uncommitted changes (`worktree-dirty`),
+  saying why instead of silently showing the old content.
+- The actions column holds two controls now (auto-commit picker + delete); column widths
+  were rebalanced (16 / 29 / 17 / 11 / 27 %) and checked at 1180 / 900 / 700 px.
+- `hbs-wt env` and `list` rows report `autoCommit`, so the agent reads the setting live.
+
 ## 0.5.3 — 2026-11-10
 
 - README install section rewritten for both audiences: users take the tarball from Releases

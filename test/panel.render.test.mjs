@@ -351,6 +351,31 @@ describe('panel', { skip: available ? false : 'react/jsdom not resolvable' }, ()
     assert.match(result.message, /host said no/);
   });
 
+  it('shows the auto-commit switch and saves it from the actions column', async () => {
+    const calls = [];
+    const { window, settle } = await mount((body) => {
+      calls.push(body);
+      if (body.cmd === 'update') return { ok: true, data: { branch: body.args.branch, autoCommit: body.args.autoCommit } };
+      return healthy(body);
+    });
+
+    const row = window.document.querySelector('tbody tr');
+    assert.ok(row !== null, 'a worktree row is rendered');
+    const picker = row.querySelector('select');
+    assert.ok(picker !== null, 'the actions column carries the auto-commit picker');
+    assert.deepEqual([...picker.options].map((option) => option.value), ['on', 'off']);
+    assert.deepEqual([...picker.options].map((option) => option.textContent), ['autoCommitOn', 'autoCommitOff']);
+    assert.equal(picker.value, 'on', 'auto-commit is on by default');
+
+    picker.value = 'off';
+    picker.dispatchEvent(new window.Event('change', { bubbles: true }));
+    await settle();
+    const sent = calls.find((call) => call.cmd === 'update');
+    assert.ok(sent !== undefined, 'update was sent');
+    assert.deepEqual(sent.args, { branch: 'A-a', autoCommit: false });
+    assert.equal(sent.root, '/repo-one');
+  });
+
   it('opens the merge dialog with the main line as the default target', async () => {
     const { window, settle } = await mount();
     clickButton(window, 'merge');

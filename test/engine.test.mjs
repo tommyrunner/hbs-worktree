@@ -160,6 +160,37 @@ describe('engine', () => {
     assert.equal(row.note, '重写解析器');
   });
 
+  it('turns auto-commit on by default and lets one worktree opt out', async () => {
+    const { run } = makeRepo();
+    const added = await run('add', { branch: 'A-a' });
+    assert.equal(added.data.worktree.autoCommit, true, 'auto-commit is the default');
+    assert.equal((await run('list')).data.worktrees[0].autoCommit, true);
+
+    const off = await run('update', { branch: 'A-a', autoCommit: false });
+    assert.equal(off.ok, true, JSON.stringify(off));
+    assert.equal(off.data.autoCommit, false);
+    assert.equal((await run('list')).data.worktrees[0].autoCommit, false);
+
+    const bound = await run('bind', { branch: 'A-a', session: 'session-auto' });
+    assert.equal(bound.ok, true);
+    const context = await run('env', { session: 'session-auto' });
+    assert.equal(context.data.autoCommit, false, 'the session reads the setting through env');
+
+    assert.equal((await run('update', { branch: 'A-a', autoCommit: true })).data.autoCommit, true);
+    expectCode(await run('update', { branch: 'missing', autoCommit: false }), 'unknown-worktree');
+  });
+
+  it('refuses to preview a worktree that has uncommitted changes', async () => {
+    const { repo, run } = makeRepo();
+    await run('add', { branch: 'A-a' });
+    writeFileSync(join(repo, '.worktree', 'A-a', 'wip.txt'), 'wip\n');
+    expectCode(await run('switch', { branch: 'A-a' }), 'worktree-dirty');
+    // Once it is committed the preview works again.
+    git(join(repo, '.worktree', 'A-a'), ['add', '-A']);
+    git(join(repo, '.worktree', 'A-a'), ['commit', '-qm', 'feat: wip']);
+    assert.equal((await run('switch', { branch: 'A-a' })).ok, true);
+  });
+
   it('binds a session, moves the binding, and resolves it through env', async () => {
     const { run } = makeRepo();
     await run('add', { branch: 'A-a' });
