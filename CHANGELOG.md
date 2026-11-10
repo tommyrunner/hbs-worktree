@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.3 — 2026-11-10
+
+- README install section rewritten for both audiences: users take the tarball from Releases
+  (no commands at all), maintainers run `npm pack`; a table lists what the panel, skill, and
+  CLI look like after install, plus why neither the skill nor `npm link` is needed.
+- FAQ gained the two questions that get asked: "does someone else have to install the skill?"
+  and "do they need `npm link`?"
+
 ## 0.5.2 — 2026-11-10
 
 - Installing the plugin is the only step: the skill was always registered by the host

@@ -55,23 +55,37 @@ AI 在自己的工作树里改代码，主业务代码保持干净；需求并�
 
 ## 安装
 
-**只需要装插件，没有第二步。** 面板、CLI、skill 三样都在同一个 bundle 里：
+**只需要装插件，没有第二步。** 面板、CLI、skill 三样都在同一个 bundle 里，skill 不需要单独安装。
+
+### 别人怎么用
+
+1. 从本仓库的 **Releases** 下载 `hbs-worktree-<版本>.tgz`；
+2. 在 Harness 的插件管理器里选「从本地安装」，指向这个 tgz；
+3. 刷新页面。
+
+不用敲命令、不用 `npm link`、不用把 skill 复制到 `~/.dsh/skills/`。
+
+### 自己从源码装
 
 ```bash
-npm pack          # 生成 hbs-worktree-<版本>.tgz
+npm pack          # 生成 hbs-worktree-<版本>.tgz，再用插件管理器安装
 ```
 
-- **面板**：装完刷新页面，设置里就有「工作树」。
-- **skill**：插件激活时由宿主半边注册进 skill 目录（`hbs-worktree`），新会话自动可用，
-  不需要单独安装、也不需要复制到 `~/.dsh/skills/`。
-- **CLI**：随插件落在 profile 的 `node_modules/hbs-worktree/bin/` 下。skill 里已经写了兜底调用方式
-  （`node "$DSH_PROFILE_DIR/node_modules/hbs-worktree/bin/hbs-wt.js"`），所以 AI 不需要 `npm link` 也能用。
+### 装完就有了什么
 
-想在自己终端里直接敲 `hbs-wt`，再执行一次 `npm link`（可选）：
+| 东西 | 装完的状态 | 还要做什么 |
+| --- | --- | --- |
+| 面板 | 设置 → 工作树 | 刷新页面 |
+| skill | 会话技能目录里出现 `hbs-worktree`，新会话可直接用 | 无 |
+| CLI | 落在 `~/.dsh/profiles/<profile>/node_modules/hbs-worktree/bin/` | 无 |
 
-```bash
-npm link          # 之后终端里就有 hbs-wt
-```
+- **skill 为什么不用单独装**：它不是放在 `~/.dsh/skills/` 的独立文件，而是打包在插件里
+  （`assets/hbs-worktree.md`），插件激活时由宿主半边 `ctx.skills.registerProvider(...)` 注册进技能目录。
+  卸载插件，skill 同步消失。
+- **CLI 为什么不用 `npm link`**：skill 里写了两段式调用——先试 PATH 上的 `hbs-wt`，没有就用
+  `node "$DSH_PROFILE_DIR/node_modules/hbs-worktree/bin/hbs-wt.js"`（`DSH_PROFILE_DIR` 在会话里一定存在）。
+  只有你自己想在终端里直接敲 `hbs-wt` 时，才需要 `npm link`。
+- **前提**：面板走宿主 HTTP 路由，只在 `dsh web`（浏览器）部署下可用；Electron 桌面壳里请用 CLI。
 
 ## 快速上手
 
@@ -198,6 +212,12 @@ hbs-wt prune                       # 清理僵尸 worktree 元数据
 
 **`git clean -xdf` 会怎样？**
 会连 `.worktree/` 一起删掉（`-x` 连忽略文件也删）。在主业务目录别随手用 `-x`。
+
+**别人用的时候要单独装 skill 吗？**
+不用。skill 随插件注册，装完插件后新会话就有 `hbs-worktree`；卸载插件它同步消失。
+
+**别人装完还需要 `npm link` 吗？**
+不需要。只有他要自己在终端里敲 `hbs-wt` 才需要；会话里的 AI 走 skill 里的兜底路径。
 
 **Electron 桌面壳里能用吗？**
 面板走宿主 HTTP 路由，只在 `dsh web`（浏览器）部署下可用；桌面壳里请用 CLI。

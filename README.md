@@ -47,21 +47,39 @@ project/
 
 ## Install
 
-One step: install the tarball with the Harness plugin manager.
+**One step: install the plugin.** Panel, CLI, and skill all ship inside the same bundle —
+the skill never has to be installed separately.
+
+### For users
+
+1. Download `hbs-worktree-<version>.tgz` from this repository's **Releases**;
+2. Install it with the Harness plugin manager ("install from local file");
+3. Refresh the page.
+
+No commands, no `npm link`, no copying into `~/.dsh/skills/`.
+
+### From source
 
 ```bash
-npm pack                        # produces hbs-worktree-<version>.tgz
+npm pack          # produces hbs-worktree-<version>.tgz, install that with the plugin manager
 ```
 
-Everything else ships inside the same bundle:
+### What you get
 
-- **Panel** — Settings → Worktrees after a page refresh.
-- **Skill** — `hbs-worktree` is registered by the host half when the plugin activates, so every
-  new session sees it. No separate skill install, no copying into `~/.dsh/skills/`.
-- **CLI** — lands in the profile's `node_modules/hbs-worktree/bin/`. The skill carries a fallback
-  (`node "$DSH_PROFILE_DIR/node_modules/hbs-worktree/bin/hbs-wt.js"`), so the agent works without `npm link`.
+| Piece | After installing | Still to do |
+| --- | --- | --- |
+| Panel | Settings → Worktrees | refresh the page |
+| Skill | `hbs-worktree` appears in the session skill catalog, usable by new sessions | nothing |
+| CLI | `~/.dsh/profiles/<profile>/node_modules/hbs-worktree/bin/` | nothing |
 
-To type `hbs-wt` in your own terminal, `npm link` once (optional).
+- **Why the skill needs no separate install:** it is not a file in `~/.dsh/skills/`; it lives in
+  `assets/hbs-worktree.md` inside the bundle and the host half registers it via
+  `ctx.skills.registerProvider(...)` on activation. Uninstalling the plugin removes it again.
+- **Why the CLI needs no `npm link`:** the skill tries `hbs-wt` on `PATH` first, then
+  `node "$DSH_PROFILE_DIR/node_modules/hbs-worktree/bin/hbs-wt.js"`. `npm link` is only for typing
+  `hbs-wt` in your own terminal.
+- **Requirement:** the panel needs the Host HTTP route, so it works in `dsh web` (browser)
+  deployments; use the CLI inside the Electron shell.
 
 ## Quick start
 
@@ -118,6 +136,8 @@ The `hbs-worktree` skill ships with the plugin and states six rules: confirm the
 - **Switching or merging needs a clean main checkout** — otherwise the dirty tree would be overwritten.
 - **You cannot merge into a worktree branch** — git will not check out that branch twice.
 - **Never run `git clean -xdf` in the main checkout** — `-x` would delete `.worktree/`.
+- **Do other users need to install the skill separately?** No — it is registered by the plugin.
+- **Do they need `npm link`?** No — only for typing `hbs-wt` themselves.
 - **The panel needs `dsh web`** (the Host HTTP route); in the Electron shell use the CLI.
 
 ## Development
