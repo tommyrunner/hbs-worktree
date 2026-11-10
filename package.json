@@ -1,6 +1,6 @@
 {
   "name": "hbs-worktree",
-  "version": "0.6.1",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "description": "DeepSeek Harness worktree workspaces: one isolated git worktree per requirement, one session per worktree that is locked to its directory, with merge and preview from a Settings panel.",
