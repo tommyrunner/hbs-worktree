@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.1.1 — 2026-11-10
+
+- **Fixed: switching the branch in the panel could look like it did nothing.** A
+  preview recorded in `.hbs-state.json` survived an outside `git checkout`, so the
+  picker believed it was already on that branch and the click was skipped. The
+  engine now reconciles the stored preview against git on every read, and the page
+  always asks the engine instead of short-circuiting on its own stale value.
+- The page re-reads the project when the window regains focus or becomes visible,
+  so a branch changed in an editor or terminal shows up without pressing Refresh.
+- `switch` reports `changed`/`currentBranch` honestly, including "already there",
+  and re-previewing the same branch tip no longer re-checks out anything.
+
 ## 1.1.0 — 2026-11-10
 
 首个正式对外版本（接在 1.0.1 之后；下面的 0.x 记录是发布前的开发过程）。

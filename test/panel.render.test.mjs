@@ -473,6 +473,22 @@ describe('panel', { skip: available ? false : 'react/jsdom not resolvable' }, ()
     assert.match(body, /backToBase/);
   });
 
+  it('still asks the engine when the picker already shows that branch', async () => {
+    const calls = [];
+    const { window, settle } = await mount((body) => {
+      calls.push(body);
+      if (body.cmd === 'switch') return { ok: true, data: { branch: body.args.branch, changed: false } };
+      return healthy(body);
+    });
+    const branchPicker = [...window.document.querySelectorAll('select')][1];
+    assert.equal(branchPicker.value, 'A');
+    // Selecting the value it already shows: the page must not swallow the click,
+    // because its view of git can be stale after an outside checkout.
+    branchPicker.dispatchEvent(new window.Event('change', { bubbles: true }));
+    await settle();
+    assert.ok(calls.some((call) => call.cmd === 'switch' && call.args.branch === 'A'), 'switch was still sent');
+  });
+
   it('re-reads everything when another workspace is picked', async () => {
     const calls = [];
     const { window, settle } = await mount((body) => {

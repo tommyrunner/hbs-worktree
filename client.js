@@ -99,6 +99,7 @@ window.__ModuleLoader__.load({
       forceRemove: 'Force delete',
       okRemove: 'Worktree deleted',
       okSwitch: 'Main checkout switched to',
+      okAlready: 'Main checkout is already on',
       mergeTitle: 'Merge worktree',
       mergeHint: 'Merges one worktree branch into a target branch, rolled back on conflict.',
       mergeFrom: 'Source branch',
@@ -163,6 +164,7 @@ window.__ModuleLoader__.load({
       forceRemove: '强制删除',
       okRemove: '已删除工作树',
       okSwitch: '主业务代码已切换到',
+      okAlready: '主业务代码已经在',
       mergeTitle: '合并工作树',
       mergeHint: '把一个工作树分支合并进目标分支，冲突时整体回滚。',
       mergeFrom: '源分支',
@@ -840,6 +842,20 @@ window.__ModuleLoader__.load({
         actions.refresh();
       }, []);
 
+      // Branches can move outside this page (an editor, a terminal, the agent).
+      // Re-read when the window comes back so the picker never argues with git.
+      React.useEffect(() => {
+        const wake = () => {
+          if (typeof document === 'undefined' || document.visibilityState !== 'hidden') actions.refresh();
+        };
+        window.addEventListener('focus', wake);
+        document.addEventListener('visibilitychange', wake);
+        return () => {
+          window.removeEventListener('focus', wake);
+          document.removeEventListener('visibilitychange', wake);
+        };
+      }, []);
+
       const list = state.list || null;
       const repo = state.repo || null;
       const workspaces = state.workspaces;
@@ -865,11 +881,14 @@ window.__ModuleLoader__.load({
       const onPickBranch = async (next) => {
         const previous = branchChoice;
         setBranchChoice(next);
-        if (next === current) return;
         setNotice(null);
+        // Always ask the engine, even when the picker already shows that branch:
+        // an outside `git checkout` leaves the picker stale, and silently
+        // returning would look like the click did nothing.
         const result = await actions.run('switch', { branch: next });
         if (result.ok === true) {
-          setNotice({ tone: 'ok', text: t('okSwitch') + ' ' + next, files: [] });
+          const changed = result.data !== null && result.data.changed === true;
+          setNotice({ tone: 'ok', text: (changed ? t('okSwitch') : t('okAlready')) + ' ' + next, files: [] });
           return;
         }
         setBranchChoice(previous);

@@ -249,6 +249,30 @@ describe('engine', () => {
     assert.equal((await run('repo')).data.preview, null);
   });
 
+  it('forgets a preview that ended outside the tool', async () => {
+    const { repo, run } = makeRepo();
+    await run('add', { branch: 'A-a' });
+    await run('switch', { branch: 'A-a' });
+    assert.equal((await run('repo')).data.preview, 'A-a');
+
+    // Someone checks a branch out in an editor or a terminal: the stored preview
+    // is now a lie, and a stale preview is what made the picker ignore a click.
+    git(repo, ['checkout', 'main']);
+    const after = await run('repo');
+    assert.equal(after.data.preview, null);
+    assert.equal(after.data.currentBranch, 'main');
+    assert.equal((await run('list')).data.preview, null);
+  });
+
+  it('reports honestly when the checkout is already there', async () => {
+    const { run } = makeRepo();
+    await run('add', { branch: 'A-a' });
+    await run('switch', { branch: 'A-a' });
+    const again = await run('switch', { branch: 'A-a' });
+    assert.equal(again.ok, true);
+    assert.equal(again.data.changed, false);
+  });
+
   it('refuses to switch over an uncommitted main checkout', async () => {
     const { repo, run } = makeRepo();
     await run('add', { branch: 'A-a' });
