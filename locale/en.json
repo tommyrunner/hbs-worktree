@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Worktrees",
+    "description": "One isolated git worktree per requirement, a session sub-branch per agent, managed, merged, and switched from Settings."
+  }
+}

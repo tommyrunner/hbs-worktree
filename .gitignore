@@ -1,0 +1,9 @@
+node_modules/
+*.tgz
+.DS_Store
+.dsh/
+dist/
+*.log
+
+# Personal agent memory maintained by the mycode-memory skill
+AGENTS.md

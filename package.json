@@ -1,0 +1,68 @@
+{
+  "name": "hbs-worktree",
+  "version": "0.5.1",
+  "private": true,
+  "type": "module",
+  "description": "DeepSeek Harness worktree workspaces: one isolated git worktree per requirement, one session per worktree that is locked to its directory, with merge and preview from a Settings panel.",
+  "license": "MIT",
+  "bin": {
+    "hbs-wt": "bin/hbs-wt.js"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "bin/hbs-wt.js",
+    "lib/*.js",
+    "assets/*.md",
+    "locale/*.json",
+    "icon.svg",
+    "docs/CONTRACT.md",
+    "README.md",
+    "README.zh.md",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "check": "node scripts/check.mjs",
+    "test": "node --test test/*.test.mjs",
+    "shot": "node scripts/screenshot.mjs"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "git-worktree",
+    "worktree"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-settings"
+      ]
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tommyrunner/hbs-worktree.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tommyrunner/hbs-worktree/issues"
+  },
+  "homepage": "https://github.com/tommyrunner/hbs-worktree#readme"
+}

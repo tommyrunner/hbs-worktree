@@ -1,0 +1,5 @@
+# Bundle patch: inserts the worktree panel's host row. The panel and the skill are
+# both served by this one row, so installing the bundle adds both halves at once.
+- insert:
+    - id: hbs-worktree
+      name: 'hbs-worktree'
