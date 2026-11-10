@@ -12,7 +12,9 @@
 
 ## 硬规矩
 
-1. **先确认绑定，再动手。** 任何写入之前先跑 `hbs-wt env`。没有绑定时只能回答、不能改代码。
+1. **先确认绑定，再动手。** 任何写入之前先跑一次 `hbs-wt env`（命令怎么调见下一节）。
+   没有绑定时只能回答、不能改代码；但第一条消息里如果已经写明工作目录，那就是绑定上下文，
+   照它执行即可。
 2. **只用绝对路径。** 绑定返回的 `root` 是唯一可写目录：`<root>/…`。会话的当前目录仍是主业务代码，
    相对路径会写进主代码。
 3. **git 命令一律 `git -C <root> …`。** 禁止在主业务目录里 commit / checkout / merge / push / reset。
@@ -30,7 +32,21 @@ hbs-wt unbind A-a          解除绑定
 hbs-wt repo                当前项目状态（是否 git、主业务分支、当前分支）
 ```
 
-`hbs-wt` 不在 PATH 时，请用户在他的插件目录执行一次 `npm link`，不要自己找替代路径。
+### 命令怎么调
+
+`hbs-wt` 可能不在 PATH 上——装插件时它只落在 profile 的 node_modules 里，用户不一定执行过 `npm link`。
+按这个顺序尝试，**不要**因为第一条失败就停下来问用户：
+
+```bash
+# 1) 先试 PATH 上的
+hbs-wt env 2>/dev/null && exit 0
+
+# 2) 没有就用插件安装位置（DSH_PROFILE_DIR 在会话环境里一定存在）
+node "$DSH_PROFILE_DIR/node_modules/hbs-worktree/bin/hbs-wt.js" env
+```
+
+把第 2 条当作等价命令使用即可；只有两条都失败时，才告诉用户「没找到 hbs-wt，
+可以在插件目录执行 `npm link`，或者直接在面板上看工作树路径」。
 
 ## 标准流程
 

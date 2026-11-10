@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.2 — 2026-11-10
+
+- Installing the plugin is the only step: the skill was always registered by the host
+  half, and the CLI now has a documented fallback
+  (`node "$DSH_PROFILE_DIR/node_modules/hbs-worktree/bin/hbs-wt.js"`), so a user who
+  never ran `npm link` still gets a working agent.
+- The skill no longer stops at "hbs-wt is not on PATH": it tries PATH first, then the
+  profile install, and only asks the user when both fail. It also treats the worktree
+  path in the panel's first message as the binding when the CLI is unavailable.
+- README install section says this explicitly in both languages.
+
 ## 0.5.1 — 2026-11-10
 
 Packaged as a GitHub-ready repository.

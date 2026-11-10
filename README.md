@@ -47,12 +47,21 @@ project/
 
 ## Install
 
+One step: install the tarball with the Harness plugin manager.
+
 ```bash
 npm pack                        # produces hbs-worktree-<version>.tgz
 ```
 
-1. Install the tarball with the Harness plugin manager.
-2. Optional but recommended for the agent: `npm link` so `hbs-wt` is on `PATH`.
+Everything else ships inside the same bundle:
+
+- **Panel** — Settings → Worktrees after a page refresh.
+- **Skill** — `hbs-worktree` is registered by the host half when the plugin activates, so every
+  new session sees it. No separate skill install, no copying into `~/.dsh/skills/`.
+- **CLI** — lands in the profile's `node_modules/hbs-worktree/bin/`. The skill carries a fallback
+  (`node "$DSH_PROFILE_DIR/node_modules/hbs-worktree/bin/hbs-wt.js"`), so the agent works without `npm link`.
+
+To type `hbs-wt` in your own terminal, `npm link` once (optional).
 
 ## Quick start
 

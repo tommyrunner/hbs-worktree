@@ -20,9 +20,9 @@ NODE_PATH=<装着 react react-dom jsdom 的目录> node --test test/panel.render
 
 在本地 Harness 里验证：
 
-1. `npm link`（让会话里的 agent 有 `hbs-wt`）；
-2. 插件管理器安装 `npm pack` 出来的 tgz；
-3. 打开 设置 → 工作树，刷新页面即可。
+1. 插件管理器安装 `npm pack` 出来的 tgz（面板 + skill + CLI 都在里面，不需要额外装 skill）；
+2. 刷新页面，打开 设置 → 工作树；
+3. 想在终端里直接用 `hbs-wt` 再 `npm link`，会话里的 agent 不依赖它（skill 有兜底路径）。
 
 ## 结构约束
 

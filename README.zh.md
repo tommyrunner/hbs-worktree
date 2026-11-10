@@ -55,20 +55,23 @@ AI 在自己的工作树里改代码，主业务代码保持干净；需求并�
 
 ## 安装
 
-**1. 装插件**：在 Harness 的插件管理器里选择本仓库打出来的 `.tgz`
+**只需要装插件，没有第二步。** 面板、CLI、skill 三样都在同一个 bundle 里：
 
 ```bash
 npm pack          # 生成 hbs-worktree-<版本>.tgz
 ```
 
-**2. 装 CLI**（可选，但会话里的 AI 需要它执行 `hbs-wt`）：
+- **面板**：装完刷新页面，设置里就有「工作树」。
+- **skill**：插件激活时由宿主半边注册进 skill 目录（`hbs-worktree`），新会话自动可用，
+  不需要单独安装、也不需要复制到 `~/.dsh/skills/`。
+- **CLI**：随插件落在 profile 的 `node_modules/hbs-worktree/bin/` 下。skill 里已经写了兜底调用方式
+  （`node "$DSH_PROFILE_DIR/node_modules/hbs-worktree/bin/hbs-wt.js"`），所以 AI 不需要 `npm link` 也能用。
+
+想在自己终端里直接敲 `hbs-wt`，再执行一次 `npm link`（可选）：
 
 ```bash
 npm link          # 之后终端里就有 hbs-wt
 ```
-
-不想 link 也可以让 AI 用绝对路径调用：
-`node ~/.dsh/profiles/desktop/node_modules/hbs-worktree/bin/hbs-wt.js`
 
 ## 快速上手
 
