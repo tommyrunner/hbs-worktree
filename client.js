@@ -280,7 +280,7 @@ window.__ModuleLoader__.load({
     /** Branch / session / note / status / actions — the table owns these, not the cells. */
     const COLUMN_WIDTHS = ['16%', '29%', '17%', '11%', '27%'];
     /** Two controls in one cell: the auto-commit picker and the delete action. */
-    const actionGroupStyle = { display: 'inline-flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' };
+    const actionGroupStyle = { display: 'inline-flex', alignItems: 'center', gap: 8, justifyContent: 'center' };
     const actionSelectStyle = { width: 92, height: 26, fontSize: 11.5 };
     const rowHover = { cursor: 'default' };
     const thStyle = {
@@ -631,7 +631,7 @@ window.__ModuleLoader__.load({
           session.length === 0
             ? h('span', { style: mutedText }, '—')
             : (known.running === true ? h(Tag, { tone: 'ok' }, t('running')) : h(Tag, null, t('done')))),
-        h('td', { style: Object.assign({}, cell, { textAlign: 'right' }) },
+        h('td', { style: Object.assign({}, cell, { textAlign: 'center' }) },
           h('span', { style: actionGroupStyle },
             h(Select, {
               value: row.autoCommit === false ? 'off' : 'on',
@@ -1046,7 +1046,7 @@ window.__ModuleLoader__.load({
               h('th', { style: thStyle }, t('session')),
               h('th', { style: thStyle }, t('note')),
               h('th', { style: thStyle }, t('status')),
-              h('th', { style: Object.assign({}, thStyle, { textAlign: 'right' }) }, t('actions')))),
+              h('th', { style: Object.assign({}, thStyle, { textAlign: 'center' }) }, t('actions')))),
             h('tbody', null, rows)));
       }
 

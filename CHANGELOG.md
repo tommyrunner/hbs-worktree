@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.1 — 2026-11-10
+
+- The actions column is centered — header and the two controls (auto-commit picker,
+  delete) line up in the middle of the column instead of hugging its right edge.
+
 ## 0.6.0 — 2026-11-10
 
 - **Auto-commit is now a per-worktree setting**, on by default and switched from the
