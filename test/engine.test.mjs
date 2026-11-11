@@ -249,6 +249,46 @@ describe('engine', () => {
     assert.equal((await run('repo')).data.preview, null);
   });
 
+  it('walks an active preview to its branch tip and leaves other states alone', async () => {
+    const { repo, run } = makeRepo();
+    await run('add', { branch: 'A-a' });
+    await run('switch', { branch: 'A-a' });
+    assert.equal((await run('follow')).data.changed, false, 'nothing new to follow yet');
+
+    // A commit inside the worktree moves the branch, not the detached preview.
+    const worktree = join(repo, '.worktree', 'A-a');
+    writeFileSync(join(worktree, 'x.txt'), 'x\n');
+    git(worktree, ['add', '-A']);
+    git(worktree, ['commit', '-qm', 'feat: x']);
+
+    const followed = await run('follow');
+    assert.equal(followed.ok, true, JSON.stringify(followed));
+    assert.equal(followed.data.changed, true);
+    assert.equal(followed.data.branch, 'A-a');
+    assert.equal(followed.data.head, git(worktree, ['rev-parse', '--short', 'HEAD']).trim());
+    assert.equal(git(repo, ['rev-parse', '--short', 'HEAD']).trim(), followed.data.head, 'the main checkout moved too');
+    assert.equal((await run('follow')).data.changed, false, 'following twice is harmless');
+
+    // Back on a plain branch there is no preview to follow.
+    await run('switch', { branch: 'main' });
+    assert.equal((await run('follow')).data.branch, null);
+  });
+
+  it('refuses to follow over uncommitted work in the main checkout', async () => {
+    const { repo, run } = makeRepo();
+    await run('add', { branch: 'A-a' });
+    await run('switch', { branch: 'A-a' });
+    const worktree = join(repo, '.worktree', 'A-a');
+    writeFileSync(join(worktree, 'x.txt'), 'x\n');
+    git(worktree, ['add', '-A']);
+    git(worktree, ['commit', '-qm', 'feat: x']);
+    writeFileSync(join(repo, 'scratch.txt'), 'local work\n');
+    const result = await run('follow');
+    assert.equal(result.ok, true, JSON.stringify(result));
+    assert.equal(result.data.changed, false);
+    assert.equal(result.data.blocked, 'main-dirty');
+  });
+
   it('forgets a preview that ended outside the tool', async () => {
     const { repo, run } = makeRepo();
     await run('add', { branch: 'A-a' });

@@ -33,6 +33,9 @@ try {
 
 const CLIENT = new URL('../client.js', import.meta.url);
 
+/** Every mounted panel: the preview poller (a `setInterval`) must not outlive a test. */
+const mounted = [];
+
 /** Two workspaces, one worktree in the first, one archived session to filter out. */
 const WORKSPACES = {
   phase: 'ready',
@@ -112,6 +115,9 @@ function healthy(body) {
 async function mount(responder = healthy, services = { workspaces: WORKSPACES, sessions: SESSIONS }, hooks = {}) {
   const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url: 'http://127.0.0.1:51013/' });
   const { window } = dom;
+  // The preview poller is a timer; tests drive it by hand instead of waiting.
+  if (typeof hooks.setInterval === 'function') window.setInterval = hooks.setInterval;
+  if (typeof hooks.clearInterval === 'function') window.clearInterval = hooks.clearInterval;
   // Node 24 exposes `navigator` as a getter-only global, so every DOM global is
   // installed through defineProperty.
   for (const [key, value] of [['window', window], ['document', window.document], ['navigator', window.navigator], ['location', window.location]]) {
@@ -174,6 +180,7 @@ async function mount(responder = healthy, services = { workspaces: WORKSPACES, s
   };
 
   const root = ReactDOM.createRoot(window.document.getElementById('root'));
+  mounted.push({ window, root });
   root.render(React.createElement(window.__render));
 
   const settle = async () => {
@@ -203,6 +210,19 @@ function clickButton(window, label, scope = window.document) {
 describe('panel', { skip: available ? false : 'react/jsdom not resolvable' }, () => {
   afterEach(() => {
     delete globalThis.fetch;
+    while (mounted.length > 0) {
+      const entry = mounted.pop();
+      try {
+        entry.root.unmount();
+      } catch {
+        // the test may have already torn the tree down
+      }
+      try {
+        entry.window.close();
+      } catch {
+        // jsdom was already closed
+      }
+    }
   });
 
   it('registers a sidebar entry and a main panel under one id', async () => {
@@ -479,6 +499,37 @@ describe('panel', { skip: available ? false : 'react/jsdom not resolvable' }, ()
     const sent = calls.find((call) => call.cmd === 'switch');
     assert.ok(sent !== undefined, 'switch was sent');
     assert.equal(sent.args.branch, 'A-a');
+  });
+
+  it('walks a live preview forward when the worktree commits', async () => {
+    let tick;
+    const calls = [];
+    const { settle } = await mount((body) => {
+      calls.push(body);
+      if (body.cmd === 'repo') return { ok: true, data: { ...REPO, preview: 'A-a', currentBranch: null, detached: true, head: '49ab12c' } };
+      if (body.cmd === 'list') return { ok: true, data: { ...LIST, preview: 'A-a', currentBranch: null, detached: true } };
+      if (body.cmd === 'follow') return { ok: true, data: { branch: 'A-a', changed: true, detached: true, head: 'beef123' } };
+      return { ok: true, data: {} };
+    }, undefined, {
+      setInterval: (fn) => { tick = fn; return 7; },
+      clearInterval: () => {},
+    });
+
+    assert.equal(typeof tick, 'function', 'a live preview polls for new commits');
+    calls.length = 0;
+    tick();
+    await settle();
+    assert.ok(calls.some((call) => call.cmd === 'follow' && call.root === '/repo-one'));
+    assert.ok(calls.some((call) => call.cmd === 'repo'), 'a followed preview is re-read');
+  });
+
+  it('does not follow anything when no preview is up', async () => {
+    let tick;
+    await mount(healthy, undefined, {
+      setInterval: (fn) => { tick = fn; return 7; },
+      clearInterval: () => {},
+    });
+    assert.equal(tick, undefined, 'a plain branch never starts the poller');
   });
 
   it('shows the checked-out commit beside the previewed branch', async () => {

@@ -54,6 +54,7 @@ git 命令直接在主业务代码目录里执行。本文件覆盖 v1 中冲突
 | `list` | `{}` | `{ root, isGit, base, preview, currentBranch, detached, dirty, worktrees: [row] }` |
 | `add` | `{ branch, session?, note?, autoCommit? }` | `{ worktree: row }` |
 | `update` | `{ branch, autoCommit }` | `{ branch, autoCommit }` |
+| `follow` | — | `{ branch, changed, head, blocked? }` |
 | `remove` | `{ branch, force? }` | `{ branch, removed: true }` |
 | `switch` | `{ branch }` | `{ branch, base, preview, changed, detached }` |
 | `merge` | `{ from, into }` | `{ from, into, merged: true }` |
@@ -161,19 +162,30 @@ git 命令直接在主业务代码目录里执行。本文件覆盖 v1 中冲突
 `byId[sessionId]` 有 `title`、`running`、`cwd`、`blank`；归档集合在
 `ctx.workspaces.list.getSnapshot().archivedSessionIds`。
 
-## 5. 提交规则
+## 5. 跟随规则
+
+`follow` 只在「主仓库是 detached HEAD 且 `preview` 指向某条工作树分支」时生效：
+
+- 该分支 tip == HEAD → `changed: false`；
+- 该分支有了新提交 → `git checkout --detach <branch>`，返回新的 `head`；
+- 主仓库有未提交改动 → 不动作，返回 `blocked: 'main-dirty'`（绝不覆盖用户的工作区）；
+- 停在普通分支 → `branch: null`，什么都不做。
+
+面板在预览态每 4 秒调用一次；主业务分支和未被预览的工作树不会被跟随。
+
+## 6. 提交规则
 
 会话做完需求必须提交（`autoCommit: true`，默认）：分支独立，提交不影响主业务代码；不提交则
 `switch` 会以 `worktree-dirty` 拒绝（预览只显示已提交内容），成果也看不见。
 `autoCommit: false` 时会话不得提交，改为提示用户手动提交。
 
-## 6. 会话归属
+## 7. 会话归属
 
 新建的会话用 `workspaceId` 挂在**面板当前选中的 Harness 工作区**下（不是 `cwd`），
 所以它出现在那个项目里；「只操作工作树目录」由 skill 的纪律约束，而不是物理 cwd。
 `cwd` 方案（会话根目录直接是工作树）隔离更强，但会话归类会脱离项目，v2 不采用。
 
-## 7. skill 协议（随插件分发）
+## 8. skill 协议（随插件分发）
 
 绑定后 agent 只在 `<root>/.worktree/<branch>` 里干活，全部用绝对路径、`git -C`，收尾仍走 CLI。
 主业务分支由用户在面板上合并，agent 不碰。

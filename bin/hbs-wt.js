@@ -12,6 +12,7 @@
  *   hbs-wt bind A-a             bind the current session to A-a
  *   hbs-wt env                  where this session should work
  *   hbs-wt switch A-a           check the main project out on A-a
+ *   hbs-wt follow               move a live preview to its branch's newest commit
  *   hbs-wt merge A-a --into A   merge a worktree branch into the base
  *   hbs-wt remove A-a           delete the worktree and its branch
  */
@@ -25,6 +26,7 @@ const USAGE = `用法: hbs-wt <命令> [参数] [选项]
   add <分支>                  从主业务分支建一个工作树到 worktree/<分支>
   remove <分支>               删除工作树及其分支（--force 丢弃未合并提交）
   switch <分支>               把主业务目录切到该分支
+  follow                     预览中的分支有新提交时，把主业务目录跟到最新
   merge <源分支>              把源分支合并到目标分支（--into，默认主业务分支）
   bind <分支>                 把当前会话绑定到该工作树
   unbind <分支>               解除该工作树的会话绑定
@@ -98,6 +100,11 @@ function human(cmd, data) {
       return `工作树 ${data.worktree.branch} 已创建：${data.worktree.path}`;
     case 'remove':
       return `已删除工作树 ${data.branch}`;
+    case 'follow':
+      if (data.branch === null) return '当前没有预览中的分支。';
+      if (data.changed) return `已跟随 ${data.branch} 到最新提交 ${data.head}`;
+      if (data.blocked === 'main-dirty') return `主业务目录有未提交改动，没有跟随 ${data.branch}。`;
+      return `预览 ${data.branch} 已经是最新提交 ${data.head}`;
     case 'switch':
       if (!data.changed) return `主业务目录已经在 ${data.branch} 上。`;
       return data.detached === true

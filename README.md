@@ -27,6 +27,7 @@ hbs-worktree makes the requirement a first-class thing: its own directory, its o
 | Preview | Switch the branch picker | The main checkout shows that branch and can run; "back to main line" restores it |
 | Merge | Merge dialog: source + target | Plain `git merge`; a conflict rolls back and lists the files |
 | Commit | The actions dropdown: auto / manual (auto by default) | Auto: the session commits and pushes when done. Manual: you commit yourself |
+| Follow | nothing | When the previewed branch gets a commit, the main checkout follows it; the base branch and other worktrees stay put |
 | Clean up | Delete + confirm | Removes directory and branch; uncommitted or unmerged work needs a second confirmation |
 
 ## How it works
@@ -140,6 +141,7 @@ The `hbs-worktree` skill ships with the plugin and states seven rules: confirm t
 - **`git status` says `HEAD (no branch)` while previewing** — the branch is checked out elsewhere; content is right, commits belong in the worktree.
 - **No `node_modules` in a worktree** — `git worktree add` checks out tracked files only; install what you need there.
 - **Switching or merging needs a clean main checkout** — otherwise the dirty tree would be overwritten.
+- **The main checkout moved to a new commit by itself** — it was previewing a worktree branch that just got a commit, so it followed it (checked every 4s). Only the previewed branch is followed; a dirty main checkout is left alone.
 - **The panel says "switched" but the editor still shows the old branch** — the panel reads git's real state; the editor's branch indicator may simply be stale (it re-reads when the window regains focus, or click Refresh). A branch switched outside the panel is now reconciled instead of leaving a phantom "previewing" row that swallowed the next click.
 - **"The worktree has uncommitted changes" when previewing** — a preview shows committed content only, so the panel refuses instead of hiding your work; commit first (that is why auto-commit is the default).
 - **You cannot merge into a worktree branch** — git will not check out that branch twice.

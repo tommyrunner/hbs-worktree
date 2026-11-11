@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.3.0 — 2026-11-11
+
+- **A live preview follows its branch.** Finishing a requirement inside a worktree used to
+  leave the detached main checkout one commit behind until the branch was picked again;
+  the panel now calls `follow` every 4 seconds while previewing and walks the checkout to
+  the branch tip.
+- `follow` only ever touches the previewed branch: on the base branch it does nothing, and
+  another worktree finishing moves nothing. A dirty main checkout is never moved
+  (`blocked: 'main-dirty'`), so user edits cannot be discarded.
+- CLI parity: `hbs-wt follow`.
+
 ## 1.2.2 — 2026-11-11
 
 - The branch picker now names the commit it is on: `dev-tm-test (49ab12c)`. A previewed

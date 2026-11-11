@@ -925,6 +925,15 @@ window.__ModuleLoader__.load({
       // so it gets a label, a hint, and an exit instead of silent confusion.
       const previewing = preview.length > 0 && onBranch.length === 0;
 
+      // Keep a live preview on the branch's newest commit: a requirement that was
+      // just committed inside the worktree should show up without re-picking the
+      // branch. Plain branches and other worktrees finishing move nothing.
+      React.useEffect(() => {
+        if (!previewing) return undefined;
+        const timer = window.setInterval(() => { void actions.follow(); }, 4000);
+        return () => { window.clearInterval(timer); };
+      }, [previewing, actions]);
+
       // The picker is a command, not a filter: its value follows the main
       // checkout, and a refused `switch` has to put the old branch back.
       React.useEffect(() => {
@@ -1389,9 +1398,22 @@ window.__ModuleLoader__.load({
         }
       }
 
+      /**
+       * While the main checkout previews a worktree branch it sits on a fixed
+       * commit; a requirement finishing in that worktree moves the branch, not the
+       * preview. This walks the preview forward — the engine decides, and only when
+       * that same branch is the one being previewed.
+       */
+      async function followPreview() {
+        const result = await post('follow', {}, state.root);
+        if (result.ok === true && result.data !== null && result.data.changed === true) await loadWorkspace();
+        return result;
+      }
+
       const actions = {
         refresh: refresh,
         run: run,
+        follow: followPreview,
         selectWorkspace: selectWorkspace,
         startSession: startSession,
       };
