@@ -133,6 +133,7 @@ async function mount(responder = healthy, services = { workspaces: WORKSPACES, s
     subscribe: () => () => {},
   });
 
+  const registrations = [];
   const ctx = {
     locale: { bind: () => (key) => key, register: () => {} },
     effect: (run) => {
@@ -144,14 +145,18 @@ async function mount(responder = healthy, services = { workspaces: WORKSPACES, s
     workspaces: services.workspaces === undefined ? undefined : { list: store(services.workspaces) },
     slots: {
       inject: (_name, run) => run(),
-      register: (_spec, render) => {
-        window.__render = render;
+      register: (spec, render) => {
+        registrations.push({ spec, render });
         return () => {};
       },
     },
   };
   factory.apply(ctx, undefined);
-  assert.equal(typeof window.__render, 'function', 'the panel registered a settings section');
+  // The plugin now registers three surfaces (sidebar entry, main panel, settings
+  // section); the page those tests drive is the settings one.
+  const settings = registrations.find((entry) => entry.spec.name === 'settings.section');
+  assert.ok(settings !== undefined, 'the panel registered a settings section');
+  window.__render = settings.render;
   // The registered renderer is `() => h(Panel, { t, store, actions })`, so calling
   // it exposes the same action surface the UI gets — the only way to drive the
   // session-creation flow without typing into a React-controlled input.
@@ -176,7 +181,7 @@ async function mount(responder = healthy, services = { workspaces: WORKSPACES, s
   await settle();
 
   const text = () => window.document.body.textContent ?? '';
-  return { window, text, calls, settle, actions: panelActions };
+  return { window, text, calls, settle, actions: panelActions, registrations };
 }
 
 /** The open dialog, if any. */
@@ -197,6 +202,24 @@ function clickButton(window, label, scope = window.document) {
 describe('panel', { skip: available ? false : 'react/jsdom not resolvable' }, () => {
   afterEach(() => {
     delete globalThis.fetch;
+  });
+
+  it('registers a sidebar entry and a main panel under one id', async () => {
+    const { registrations } = await mount();
+
+    const entry = registrations.find((row) => row.spec.name === 'sidebar.panellist');
+    assert.ok(entry !== undefined, 'the left sidebar carries an entry');
+    assert.equal(entry.spec.id, 'hbs-worktree');
+    assert.equal(typeof entry.spec.order, 'number');
+    assert.equal(entry.spec.locale, 'hbs-worktree');
+    assert.equal(entry.spec.label(), 'title', 'the entry label is localized through the dictionary');
+    const icon = entry.render({ size: 16 });
+    assert.equal(icon.type, 'svg', 'the entry renders the branch glyph');
+    assert.equal(icon.props.width, 16);
+
+    const main = registrations.find((row) => row.spec.name === 'main');
+    assert.ok(main !== undefined, 'the full page registers in the main slot');
+    assert.equal(main.spec.key, 'hbs-worktree', 'clicking the entry selects this panel');
   });
 
   it('says the Host is unreachable instead of rendering nothing', async () => {

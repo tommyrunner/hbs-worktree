@@ -33,6 +33,8 @@ window.__ModuleLoader__.load({
 
     const NS = 'hbs-worktree';
     const SLOT = 'settings.section';
+    /** Shared by the sidebar entry, the main panel, and the settings section. */
+    const PANEL_ID = 'hbs-worktree';
     const API = '/hbs-worktree/api';
 
     /** Client-side code for "the Host route never answered"; it never crosses the wire. */
@@ -437,6 +439,32 @@ window.__ModuleLoader__.load({
       if (error.code === UNREACHABLE) return t('hostMissing');
       const message = typeof error.message === 'string' ? error.message : '';
       return message.length > 0 ? message : t('failed');
+    }
+
+    /**
+     * Sidebar entry icon: the same branch glyph as `icon.svg`, drawn inline so the
+     * plugin still imports nothing but React.
+     * @param props - `size` in pixels, supplied by the sidebar.
+     */
+    function WorktreeIcon(props) {
+      const size = typeof props.size === 'number' && props.size > 0 ? props.size : 18;
+      return h('svg', {
+        width: size,
+        height: size,
+        viewBox: '0 0 24 24',
+        fill: 'none',
+        stroke: 'currentColor',
+        strokeWidth: 1.7,
+        strokeLinecap: 'round',
+        strokeLinejoin: 'round',
+        'aria-hidden': 'true',
+      },
+        h('circle', { cx: 6, cy: 5, r: 2.2 }),
+        h('circle', { cx: 6, cy: 19, r: 2.2 }),
+        h('circle', { cx: 18, cy: 12, r: 2.2 }),
+        h('path', { d: 'M6 7.2v9.6' }),
+        h('path', { d: 'M8.2 5h4.3A3.3 3.3 0 0 1 15.8 8.3v1.4' }),
+        h('path', { d: 'M8.2 19h4.3a3.3 3.3 0 0 0 3.3-3.3v-1.4' }));
     }
 
     /**
@@ -1346,6 +1374,29 @@ window.__ModuleLoader__.load({
       // owns its pickers, table, and dialogs. The section carries no config of
       // its own, so `inject` stays empty and the page receives its store and
       // actions through the closure below.
+      // The entrance people actually use: a panel in the left sidebar (the same
+      // rail as Tasks and Plugins). The sidebar entry only supplies an icon and a
+      // label; clicking it makes the layout select the `main` entry registered
+      // under the same id, which renders the full page.
+      const page = () => h(Panel, { t: t, store: store, actions: actions });
+
+      ctx.effect(() => ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
+        name: 'sidebar.panellist',
+        id: PANEL_ID,
+        order: 20,
+        locale: NS,
+        label: () => t('title'),
+      }, WorktreeIcon)), 'hbs-worktree: sidebar entry');
+
+      ctx.effect(() => ctx.slots.inject('main', () => ctx.slots.register({
+        name: 'main',
+        key: PANEL_ID,
+        locale: NS,
+        inject: () => ({}),
+      }, page)), 'hbs-worktree: main panel');
+
+      // Kept as a fallback: deployments that do not render the sidebar rail still
+      // expose Settings, and the page is the same component.
       ctx.effect(() => ctx.slots.inject(SLOT, () => ctx.slots.register({
         name: SLOT,
         id: 'hbs-worktree',
@@ -1353,7 +1404,7 @@ window.__ModuleLoader__.load({
         label: () => t('title'),
         locale: NS,
         inject: () => ({}),
-      }, () => h(Panel, { t: t, store: store, actions: actions }))), 'hbs-worktree: settings section');
+      }, page)), 'hbs-worktree: settings section');
     }
 
     return { inject: inject, apply: apply };

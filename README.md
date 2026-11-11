@@ -69,7 +69,7 @@ npm pack          # produces hbs-worktree-<version>.tgz, install that with the p
 
 | Piece | After installing | Still to do |
 | --- | --- | --- |
-| Panel | Settings → Worktrees | refresh the page |
+| Panel | the **Worktrees** entry in the left sidebar (Settings keeps a copy) | refresh the page |
 | Skill | `hbs-worktree` appears in the session skill catalog, usable by new sessions | nothing |
 | CLI | `~/.dsh/profiles/<profile>/node_modules/hbs-worktree/bin/` | nothing |
 
@@ -84,7 +84,7 @@ npm pack          # produces hbs-worktree-<version>.tgz, install that with the p
 
 ## Quick start
 
-1. **Settings → Worktrees** — pick the workspace (project) at the top.
+1. **Click the Worktrees entry in the left sidebar** (same rail as Tasks and Plugins) — it opens a full page. Settings → Worktrees keeps a copy as a fallback. Pick the workspace (project) at the top.
    *Effect: you see the base branch, an empty table, and, for a plain directory, a clear "not a git repository" notice instead of buttons that would fail.*
 2. **+ New worktree** — branch `dev-a`, session name, optional note.
    *Effect: branch created, checked out under `.worktree/dev-a`, a session created in this workspace, named, bound, revealed, and given its first instruction — in one click.*

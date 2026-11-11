@@ -9,7 +9,7 @@ git 命令直接在主业务代码目录里执行。本文件覆盖 v1 中冲突
 | --- | --- | --- |
 | 引擎 | `lib/engine.js` | 唯一真相来源：`git worktree` 与分支操作 |
 | 宿主 | `index.js` | 注册 skill + 一条 `POST /hbs-worktree/api` |
-| 面板 | `client.js` | 设置里的「工作树」：两个下拉 + 表格 + 弹窗 |
+| 面板 | `client.js` | 左栏入口（`sidebar.panellist`）+ 整页（`main`，同 id `hbs-worktree`）+ 设置兜底 |
 | CLI | `bin/hbs-wt.js` | 同一引擎的命令行入口（agent 用） |
 | skill | `assets/hbs-worktree.md` | 绑定协议 |
 
@@ -115,7 +115,16 @@ git 命令直接在主业务代码目录里执行。本文件覆盖 v1 中冲突
 
 合并冲突：`conflict` + `details.files`（已 `merge --abort`，现场不留半成品）。
 
-## 4. 面板结构
+## 4. 面板入口与结构
+
+三个槽位注册同一个页面组件，共用 id `hbs-worktree`：
+
+- `sidebar.panellist`：左栏入口（`id` + `order` + `label` + 图标），点击后由布局调用
+  `ctx.layout.selectPanel('hbs-worktree')`；
+- `main`：`key: 'hbs-worktree'` 的整页面板，渲染同一个页面组件；
+- `settings.section`：兜底入口（没有左栏的部署）。
+
+页面结构：
 
 ```
 [工作区 ▾]  [分支 ▾]                         [合并]  [刷新]

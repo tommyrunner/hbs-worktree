@@ -76,7 +76,7 @@ npm pack          # 生成 hbs-worktree-<版本>.tgz，再用插件管理器安�
 
 | 东西 | 装完的状态 | 还要做什么 |
 | --- | --- | --- |
-| 面板 | 设置 → 工作树 | 刷新页面 |
+| 面板 | 左侧栏的「工作树」图标（设置 → 工作树 也留了一份） | 刷新页面 |
 | skill | 会话技能目录里出现 `hbs-worktree`，新会话可直接用 | 无 |
 | CLI | 落在 `~/.dsh/profiles/<profile>/node_modules/hbs-worktree/bin/` | 无 |
 
@@ -94,7 +94,8 @@ npm pack          # 生成 hbs-worktree-<版本>.tgz，再用插件管理器安�
 
 ### 第 1 步：打开面板
 
-设置 → **工作树**。
+点**左侧栏最下方的「工作树」图标**（和「任务管理」「插件管理」同一栏），它打开的是一个整页面板。
+设置 → 工作树 里也留了同一份，作为兜底入口。
 
 > **效果**：顶部能看到 Harness 的工作区下拉（默认当前项目）、分支下拉（主业务分支）、空表格。
 > 如果选中的目录不是 git 仓库，这里会直接告诉你「当前主业务代码未初始化 git」，不会让你在死路上点按钮。
@@ -257,7 +258,7 @@ NODE_PATH=<装着 react react-dom jsdom 的目录> node --test test/panel.render
 
 ```
 index.js                 宿主半边：注册 skill provider + 暴露 /hbs-worktree/api
-client.js                浏览器半边：设置里的「工作树」面板
+client.js                浏览器半边：工作树面板（左栏入口 + main 整页 + 设置的兜底入口）
 lib/engine.js            引擎（命令表 + 状态机），不依赖任何 Harness 包
 lib/git.js               git 命令封装
 lib/state.js             .worktree/.hbs-state.json 与 info/exclude

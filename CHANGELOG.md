@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.0 — 2026-11-11
+
+- The panel moved out of Settings: a **left-sidebar entry** (the same rail as Tasks and
+  Plugins) opens it as a full page. Clicking the entry selects the `main` panel
+  registered under the same id, which is how the official packages ship their own
+  management pages.
+- Settings keeps the same page as a fallback entry for deployments without the
+  sidebar rail; all three surfaces render one component.
+- The sidebar icon is an inline SVG (the plugin still imports nothing but React).
+
 ## 1.1.1 — 2026-11-10
 
 - **Fixed: switching the branch in the panel could look like it did nothing.** A
