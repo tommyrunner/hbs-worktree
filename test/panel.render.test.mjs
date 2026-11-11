@@ -225,7 +225,7 @@ describe('panel', { skip: available ? false : 'react/jsdom not resolvable' }, ()
     }
   });
 
-  it('registers a sidebar entry, the page, and a header switch', async () => {
+  it('registers a sidebar entry and the page, and nothing in the session header', async () => {
     const { registrations } = await mount();
 
     assert.equal(registrations.some((row) => row.spec.name === 'settings.section'), false,
@@ -245,45 +245,8 @@ describe('panel', { skip: available ? false : 'react/jsdom not resolvable' }, ()
     assert.ok(main !== undefined, 'the full page registers in the main slot');
     assert.equal(main.spec.key, 'hbs-worktree', 'clicking the entry selects this panel');
 
-    const header = registrations.find((row) => row.spec.name === 'conversation.session.header.utilities');
-    assert.ok(header !== undefined, 'the conversation header carries a compact switch');
-    assert.equal(header.spec.id, 'hbs-worktree');
-  });
-
-  it('switches branch from the conversation header without leaving it', async () => {
-    const calls = [];
-    const { window, settle, registrations } = await mount((body) => {
-      calls.push(body);
-      return healthy(body);
-    });
-
-    const header = registrations.find((row) => row.spec.name === 'conversation.session.header.utilities');
-    const host = window.document.createElement('div');
-    window.document.body.appendChild(host);
-    const injected = header.spec.inject('s1');
-    mounted.push({ window, root: ReactDOM.createRoot(host) });
-    mounted[mounted.length - 1].root.render(
-      React.createElement(header.render, Object.assign({ t: (key) => key }, injected)),
-    );
-    await settle();
-
-    // The switch is a popover, not a page: opening it costs one click.
-    const trigger = host.querySelector('[aria-haspopup="dialog"]');
-    assert.ok(trigger !== null, 'the header entry is a button');
-    assert.match(trigger.textContent, /A/, 'the entry names the branch it is on, so it reads as an entry');
-    trigger.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
-    await settle();
-
-    const pickers = [...host.querySelectorAll('[role="dialog"] select')];
-    assert.equal(pickers.length, 2, 'exactly two pickers: workspace and branch');
-
-    calls.length = 0;
-    pickers[1].value = 'A-a';
-    pickers[1].dispatchEvent(new window.Event('change', { bubbles: true }));
-    await settle();
-    const sent = calls.find((call) => call.cmd === 'switch');
-    assert.ok(sent !== undefined, 'changing the branch asks the engine to switch');
-    assert.equal(sent.args.branch, 'A-a');
+    assert.equal(registrations.some((row) => row.spec.name === 'conversation.session.header.utilities'), false,
+      'the session header carries no entry: the sidebar is the only entrance');
   });
 
   it('says the Host is unreachable instead of rendering nothing', async () => {

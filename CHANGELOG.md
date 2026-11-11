@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.0 — 2026-11-11
+
+- Removed the session-header switch. The left sidebar is the only entrance again: one
+  place to open the page, no second surface to keep in sync (and no popover to style
+  inside someone else's header).
+- `apply` logs the two remaining surfaces (`sidebar, main`) once; the header entry, its
+  popover, its dictionary keys, and its screenshot are gone.
+
 ## 1.4.2 — 2026-11-11
 
 - The header switch now falls back when the slot does not hand it `t`, so a missing

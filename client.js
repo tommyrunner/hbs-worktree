@@ -65,11 +65,6 @@ window.__ModuleLoader__.load({
       add: 'New worktree',
       remove: 'Delete',
       unbound: 'Unbound',
-      headerSwitchTitle: 'Worktrees and branches',
-      headerWorkspace: 'Workspace',
-      headerBranch: 'Branch',
-      headerNoGit: 'This project is not a git repository',
-      openPanel: 'Open the worktrees page',
       autoCommitOn: 'Auto',
       autoCommitOff: 'Manual',
       autoCommitHint: 'Auto-commit: the session commits and pushes when the requirement is done. Off: you commit by hand, and switching to it will be refused while dirty.',
@@ -135,11 +130,6 @@ window.__ModuleLoader__.load({
       add: '新增工作树',
       remove: '删除',
       unbound: '未绑定',
-      headerSwitchTitle: '工作树与分支',
-      headerWorkspace: '工作区',
-      headerBranch: '分支',
-      headerNoGit: '该项目没有初始化 git',
-      openPanel: '打开工作树面板',
       autoCommitOn: '自动提交',
       autoCommitOff: '手动提交',
       autoCommitHint: '自动提交：会话做完需求自己提交并推送。手动提交：你自己提交；工作树有未提交改动时不允许切过去。',
@@ -865,208 +855,6 @@ window.__ModuleLoader__.load({
         error.length > 0 ? h('p', { style: Object.assign({}, hint, { color: TOKEN.error }) }, error) : null);
     }
 
-    /**
-     * The conversation header's compact switch: two pickers and a door into the page.
-     *
-     * It exists so a branch can be changed without leaving the conversation. Creating,
-     * merging and deleting stay on the page — this popover deliberately does one thing.
-     */
-    function HeaderSwitch(props) {
-      // Slot entries receive `t` from their declared locale namespace; fall back so a
-      // missing binding degrades to keys instead of throwing the whole entry away.
-      const t = typeof props.t === 'function' ? props.t : (key) => key;
-      const post = props.post;
-      const workspaces = props.workspaces;
-      const [open, setOpen] = React.useState(false);
-      const [root, setRoot] = React.useState('');
-      const [info, setInfo] = React.useState(null);
-      const [busy, setBusy] = React.useState(false);
-      const [error, setError] = React.useState('');
-      const box = React.useRef(null);
-
-      const snapshot = workspaces !== undefined && workspaces.list !== undefined
-        ? React.useSyncExternalStore(workspaces.list.subscribe, workspaces.list.getSnapshot)
-        : null;
-      const items = snapshot !== null && Array.isArray(snapshot.items) ? snapshot.items : [];
-      const sessionId = typeof props.sessionId === 'string' ? props.sessionId : '';
-
-      // Open on the workspace that owns this session; otherwise the first one.
-      React.useEffect(() => {
-        if (root !== '' || items.length === 0) return;
-        const owner = items.find((item) => Array.isArray(item.sessionIds) && item.sessionIds.indexOf(sessionId) !== -1);
-        const chosen = owner === undefined ? items[0] : owner;
-        setRoot(String(chosen.path || ''));
-      }, [items, root, sessionId]);
-
-      const reload = React.useCallback(async () => {
-        if (root === '' || typeof post !== 'function') return;
-        const result = await post('list', {}, root);
-        if (result.ok !== true) {
-          setInfo(null);
-          setError(errorText(t, result.error));
-          return;
-        }
-        setInfo(result.data);
-        setError('');
-      }, [root, post, t]);
-
-      // Load on mount, not on open: the trigger shows the branch it is on, so that
-      // label has to exist before anyone clicks.
-      React.useEffect(() => {
-        void reload();
-      }, [reload]);
-
-      // The header has nowhere else to dismiss from: outside click and Escape close it.
-      React.useEffect(() => {
-        if (!open) return undefined;
-        const onDown = (event) => {
-          if (box.current !== null && box.current.contains(event.target)) return;
-          setOpen(false);
-        };
-        const onKey = (event) => {
-          if (event.key === 'Escape') setOpen(false);
-        };
-        document.addEventListener('mousedown', onDown);
-        document.addEventListener('keydown', onKey);
-        return () => {
-          document.removeEventListener('mousedown', onDown);
-          document.removeEventListener('keydown', onKey);
-        };
-      }, [open]);
-
-      const listed = info !== null && info.isGit === true;
-      const base = listed && typeof info.base === 'string' ? info.base : '';
-      const preview = listed && typeof info.preview === 'string' ? info.preview : '';
-      const onBranch = listed && typeof info.currentBranch === 'string' ? info.currentBranch : '';
-      const head = listed && typeof info.head === 'string' ? info.head : '';
-      const current = onBranch !== '' ? onBranch : (preview !== '' ? preview : base);
-      const rows = listed && Array.isArray(info.worktrees) ? info.worktrees : [];
-      const branches = base === '' ? [] : [{ value: base, label: base + ' · ' + t('mainLine') }]
-        .concat(rows.map((row) => String(row.branch || '')).filter((branch) => branch !== '' && branch !== base).map((branch) => ({ value: branch, label: branch })));
-      // Same rule as the page: only the checked-out branch is labelled with a commit.
-      const branchOptions = head === ''
-        ? branches
-        : branches.map((option) => (option.value === current ? { value: option.value, label: option.label + ' (' + head + ')' } : option));
-      const workspaceOptions = items.map((item) => ({ value: String(item.path || ''), label: String(item.title || '') || baseName(item.path) }));
-
-      const pickBranch = async (next) => {
-        setBusy(true);
-        setError('');
-        const result = await post('switch', { branch: next }, root);
-        if (result.ok === true) await reload();
-        else setError(errorText(t, result.error));
-        setBusy(false);
-      };
-
-      const labelStyle = { display: 'grid', gap: 6, fontSize: 11, lineHeight: '16px', color: TOKEN.labelTertiary };
-      return h('div', { ref: box, style: { position: 'relative', display: 'inline-flex' } },
-        h('button', Object.assign({
-          type: 'button',
-          style: {
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            height: 28,
-            maxWidth: 200,
-            padding: current === '' ? 0 : '0 9px',
-            width: current === '' ? 28 : undefined,
-            justifyContent: 'center',
-            border: 0,
-            borderRadius: 28,
-            background: 'transparent',
-            color: TOKEN.labelSecondary,
-            cursor: 'pointer',
-            fontSize: 12,
-            lineHeight: '18px',
-            fontFamily: 'inherit',
-          },
-          title: t('headerSwitchTitle') + (current === '' ? '' : ' · ' + current),
-          'aria-haspopup': 'dialog',
-          'aria-expanded': open ? 'true' : 'false',
-          onClick: () => setOpen(!open),
-        }, hoverable('secondary')),
-          h(WorktreeIcon, { size: 14 }),
-          current === ''
-            ? null
-            : h('span', {
-              style: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 },
-            }, current),
-          h('span', {
-            'aria-hidden': 'true',
-            style: {
-              flex: 'none',
-              width: 0,
-              height: 0,
-              borderLeft: '3.5px solid transparent',
-              borderRight: '3.5px solid transparent',
-              borderTop: '4.5px solid ' + TOKEN.labelTertiary,
-            },
-          })),
-        open
-          ? h('div', {
-            role: 'dialog',
-            'aria-label': t('title'),
-            style: {
-              position: 'absolute',
-              top: 'calc(100% + 8px)',
-              right: 0,
-              zIndex: 1200,
-              display: 'grid',
-              gap: 12,
-              boxSizing: 'border-box',
-              width: 280,
-              padding: 14,
-              borderRadius: TOKEN.radiusXl,
-              border: '.5px solid ' + TOKEN.cardStroke,
-              background: TOKEN.dialogFill,
-              boxShadow: TOKEN.elevation,
-              color: TOKEN.labelPrimary,
-            },
-          },
-            h('span', { style: { fontSize: 12, fontWeight: 600 } }, t('title')),
-            h('label', { style: labelStyle },
-              t('headerWorkspace'),
-              h(Select, {
-                value: root,
-                options: workspaceOptions,
-                disabled: workspaceOptions.length === 0 || busy,
-                wrapperStyle: { width: '100%' },
-                controlStyle: { width: '100%', height: 30, fontSize: 12 },
-                onChange: (event) => setRoot(event.target.value),
-              })),
-            info !== null && info.isGit !== true
-              ? h('p', { style: { margin: 0, fontSize: 11, lineHeight: '16px', color: TOKEN.labelTertiary } }, t('headerNoGit'))
-              : h('label', { style: labelStyle },
-                t('headerBranch'),
-                h(Select, {
-                  value: current,
-                  options: branchOptions,
-                  disabled: busy || branchOptions.length === 0,
-                  wrapperStyle: { width: '100%' },
-                  controlStyle: { width: '100%', height: 30, fontSize: 12 },
-                  onChange: (event) => void pickBranch(event.target.value),
-                })),
-            error === '' ? null : h('p', { style: { margin: 0, fontSize: 11, lineHeight: '16px', color: TOKEN.error } }, error),
-            h('button', {
-              type: 'button',
-              style: {
-                justifySelf: 'start',
-                padding: 0,
-                border: 0,
-                background: 'transparent',
-                color: TOKEN.buttonFill,
-                font: 'inherit',
-                fontSize: 12,
-                cursor: 'pointer',
-              },
-              onClick: () => {
-                setOpen(false);
-                if (typeof props.openPanel === 'function') props.openPanel();
-              },
-            }, t('openPanel')))
-          : null);
-    }
-
     function Panel(props) {
       const t = props.t;
       const actions = props.actions;
@@ -1655,23 +1443,8 @@ window.__ModuleLoader__.load({
         inject: () => ({}),
       }, page)), 'hbs-worktree: main panel');
 
-      // A compact switch in the conversation header — two pickers and nothing else —
-      // for the case where the page is not open. The page remains the real workspace.
-      ctx.effect(() => ctx.slots.inject('conversation.session.header.utilities', () => ctx.slots.register({
-        name: 'conversation.session.header.utilities',
-        id: PANEL_ID,
-        order: -8,
-        locale: NS,
-        inject: () => ({
-          post: post,
-          workspaces: workspaces,
-          openPanel: () => {
-            const layout = ctx.get('layout');
-            if (layout !== undefined && typeof layout.selectPanel === 'function') layout.selectPanel(PANEL_ID);
-          },
-        }),
-      }, HeaderSwitch)), 'hbs-worktree: header switch');
-      console.info('[hbs-worktree] entries registered: sidebar, main, header');
+
+      console.info('[hbs-worktree] entries registered: sidebar, main');
     }
 
     return { inject: inject, apply: apply };

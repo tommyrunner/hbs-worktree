@@ -9,7 +9,7 @@ git 命令直接在主业务代码目录里执行。本文件覆盖 v1 中冲突
 | --- | --- | --- |
 | 引擎 | `lib/engine.js` | 唯一真相来源：`git worktree` 与分支操作 |
 | 宿主 | `index.js` | 注册 skill + 一条 `POST /hbs-worktree/api` |
-| 面板 | `client.js` | 左栏入口（`sidebar.panellist`）+ 整页（`main`，同 id）+ 会话头部快捷切换 |
+| 面板 | `client.js` | 左栏入口（`sidebar.panellist`）+ 整页（`main`，同 id） |
 | CLI | `bin/hbs-wt.js` | 同一引擎的命令行入口（agent 用） |
 | skill | `assets/hbs-worktree.md` | 绑定协议 |
 
@@ -118,15 +118,14 @@ git 命令直接在主业务代码目录里执行。本文件覆盖 v1 中冲突
 
 ## 4. 面板入口与结构
 
-共用 id `hbs-worktree` 的三个槽位：
+共用 id `hbs-worktree` 的两个槽位：
 
 - `sidebar.panellist`：左栏入口（`id` + `order` + `label` + 图标），点击后由布局调用
   `ctx.layout.selectPanel('hbs-worktree')`；
-- `main`：`key: 'hbs-worktree'` 的整页面板，渲染页面组件；
-- `conversation.session.header.utilities`：会话标题栏的快捷切换（`HeaderSwitch`），
-  点击拉出「工作区 + 分支」两个下拉，只调 `switch`，另有入口跳到整页（`ctx.layout.selectPanel`）。
+- `main`：`key: 'hbs-worktree'` 的整页面板，渲染页面组件。
 
-设置分区（`settings.section`）自 1.4 起不再注册。
+`settings.section`（1.4 起）与 `conversation.session.header.utilities`（1.5 起）都不再注册：
+入口只有左栏一个。
 
 页面结构：
 
