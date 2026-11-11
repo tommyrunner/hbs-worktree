@@ -70,7 +70,8 @@ npm pack          # produces hbs-worktree-<version>.tgz, install that with the p
 
 | Piece | After installing | Still to do |
 | --- | --- | --- |
-| Panel | the **Worktrees** entry in the left sidebar (Settings keeps a copy) | refresh the page |
+| Panel | the **Worktrees** entry in the left sidebar | refresh the page |
+| Header switch | a branch icon on the right of the session title bar: two pickers, nothing else | nothing |
 | Skill | `hbs-worktree` appears in the session skill catalog, usable by new sessions | nothing |
 | CLI | `~/.dsh/profiles/<profile>/node_modules/hbs-worktree/bin/` | nothing |
 
@@ -85,7 +86,7 @@ npm pack          # produces hbs-worktree-<version>.tgz, install that with the p
 
 ## Quick start
 
-1. **Click the Worktrees entry in the left sidebar** (same rail as Tasks and Plugins) — it opens a full page. Settings → Worktrees keeps a copy as a fallback. Pick the workspace (project) at the top.
+1. **Click the Worktrees entry in the left sidebar** (same rail as Tasks and Plugins) — it opens a full page. That is the only entry: the Settings copy was removed, because a management page does not belong three levels deep in Settings.
    *Effect: you see the base branch, an empty table, and, for a plain directory, a clear "not a git repository" notice instead of buttons that would fail.*
 2. **+ New worktree** — branch `dev-a`, session name, optional note.
    *Effect: branch created, checked out under `.worktree/dev-a`, a session created in this workspace, named, bound, revealed, and given its first instruction — in one click.*
@@ -98,11 +99,18 @@ npm pack          # produces hbs-worktree-<version>.tgz, install that with the p
 6. **Delete** — with confirmation.
    *Effect: directory and branch removed; unmerged or dirty work asks for a second confirmation.*
 
+## Header switch
+
+For changing branches without leaving the conversation: the branch icon on the right of the
+session title bar drops down exactly two pickers — **Workspace** and **Branch** — plus a door
+into the page. Creating, merging, and deleting stay on the page.
+
+![Header switch](docs/screenshots/header.png)
+
 ## Panel
 
-These are the **full page opened from the left-sidebar entry** (since 1.2 the entry lives
-there; Settings keeps the same page). Content is centred in a 960px reading column, and the
-gutters narrow with the window.
+These are the **full page opened from the left-sidebar entry**. Content is centred in a
+960px reading column, and the gutters narrow with the window.
 
 ![List](docs/screenshots/wide.png)
 
@@ -148,6 +156,7 @@ The `hbs-worktree` skill ships with the plugin and states seven rules: confirm t
 - **Never run `git clean -xdf` in the main checkout** — `-x` would delete `.worktree/`.
 - **Do other users need to install the skill separately?** No — it is registered by the plugin.
 - **Do they need `npm link`?** No — only for typing `hbs-wt` themselves.
+- **Where did the Settings entry go?** Removed in 1.4 — the page lives in the left sidebar only, and the session header carries a switch-only popover.
 - **The panel needs `dsh web`** (the Host HTTP route); in the Electron shell use the CLI.
 
 ## Development

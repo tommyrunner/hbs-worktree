@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.4.0 — 2026-11-11
+
+- **The Settings entry is gone.** The page lives in the left sidebar only; a management page
+  has no business three levels deep in Settings. `@deepseek-ai/dsh-client-ui-settings` is no
+  longer a client dependency.
+- **New: a switch-only entry in the conversation header** (`conversation.session.header.utilities`).
+  One click drops down exactly two pickers — workspace and branch — and a link into the page.
+  Changing the branch calls `switch` and stays in the conversation; creating, merging, and
+  deleting remain on the page.
+- The page component lost its settings-shaped variant: one container, the page frame.
+
 ## 1.3.0 — 2026-11-11
 
 - **A live preview follows its branch.** Finishing a requirement inside a worktree used to

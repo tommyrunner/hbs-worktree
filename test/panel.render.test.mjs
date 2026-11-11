@@ -159,11 +159,11 @@ async function mount(responder = healthy, services = { workspaces: WORKSPACES, s
     },
   };
   factory.apply(ctx, undefined);
-  // The plugin now registers three surfaces (sidebar entry, main panel, settings
-  // section); the page those tests drive is the settings one.
-  const settings = registrations.find((entry) => entry.spec.name === 'settings.section');
-  assert.ok(settings !== undefined, 'the panel registered a settings section');
-  window.__render = settings.render;
+  // The plugin registers two surfaces for the page's host (sidebar entry, main
+  // panel) plus the header switch; these tests drive the page itself.
+  const main = registrations.find((entry) => entry.spec.name === 'main');
+  assert.ok(main !== undefined, 'the panel registered the main page');
+  window.__render = main.render;
   // The registered renderer is `() => h(Panel, { t, store, actions })`, so calling
   // it exposes the same action surface the UI gets — the only way to drive the
   // session-creation flow without typing into a React-controlled input.
@@ -225,8 +225,11 @@ describe('panel', { skip: available ? false : 'react/jsdom not resolvable' }, ()
     }
   });
 
-  it('registers a sidebar entry and a main panel under one id', async () => {
+  it('registers a sidebar entry, the page, and a header switch', async () => {
     const { registrations } = await mount();
+
+    assert.equal(registrations.some((row) => row.spec.name === 'settings.section'), false,
+      'Settings no longer carries a copy of the page');
 
     const entry = registrations.find((row) => row.spec.name === 'sidebar.panellist');
     assert.ok(entry !== undefined, 'the left sidebar carries an entry');
@@ -241,6 +244,45 @@ describe('panel', { skip: available ? false : 'react/jsdom not resolvable' }, ()
     const main = registrations.find((row) => row.spec.name === 'main');
     assert.ok(main !== undefined, 'the full page registers in the main slot');
     assert.equal(main.spec.key, 'hbs-worktree', 'clicking the entry selects this panel');
+
+    const header = registrations.find((row) => row.spec.name === 'conversation.session.header.utilities');
+    assert.ok(header !== undefined, 'the conversation header carries a compact switch');
+    assert.equal(header.spec.id, 'hbs-worktree');
+  });
+
+  it('switches branch from the conversation header without leaving it', async () => {
+    const calls = [];
+    const { window, settle, registrations } = await mount((body) => {
+      calls.push(body);
+      return healthy(body);
+    });
+
+    const header = registrations.find((row) => row.spec.name === 'conversation.session.header.utilities');
+    const host = window.document.createElement('div');
+    window.document.body.appendChild(host);
+    const injected = header.spec.inject('s1');
+    mounted.push({ window, root: ReactDOM.createRoot(host) });
+    mounted[mounted.length - 1].root.render(
+      React.createElement(header.render, Object.assign({ t: (key) => key }, injected)),
+    );
+    await settle();
+
+    // The switch is a popover, not a page: opening it costs one click.
+    const trigger = host.querySelector('[aria-haspopup="dialog"]');
+    assert.ok(trigger !== null, 'the header entry is a button');
+    trigger.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    await settle();
+
+    const pickers = [...host.querySelectorAll('[role="dialog"] select')];
+    assert.equal(pickers.length, 2, 'exactly two pickers: workspace and branch');
+
+    calls.length = 0;
+    pickers[1].value = 'A-a';
+    pickers[1].dispatchEvent(new window.Event('change', { bubbles: true }));
+    await settle();
+    const sent = calls.find((call) => call.cmd === 'switch');
+    assert.ok(sent !== undefined, 'changing the branch asks the engine to switch');
+    assert.equal(sent.args.branch, 'A-a');
   });
 
   it('says the Host is unreachable instead of rendering nothing', async () => {

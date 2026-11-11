@@ -32,7 +32,6 @@ window.__ModuleLoader__.load({
     const h = React.createElement;
 
     const NS = 'hbs-worktree';
-    const SLOT = 'settings.section';
     /** Shared by the sidebar entry, the main panel, and the settings section. */
     const PANEL_ID = 'hbs-worktree';
     const API = '/hbs-worktree/api';
@@ -66,6 +65,10 @@ window.__ModuleLoader__.load({
       add: 'New worktree',
       remove: 'Delete',
       unbound: 'Unbound',
+      headerWorkspace: 'Workspace',
+      headerBranch: 'Branch',
+      headerNoGit: 'This project is not a git repository',
+      openPanel: 'Open the worktrees page',
       autoCommitOn: 'Auto',
       autoCommitOff: 'Manual',
       autoCommitHint: 'Auto-commit: the session commits and pushes when the requirement is done. Off: you commit by hand, and switching to it will be refused while dirty.',
@@ -131,6 +134,10 @@ window.__ModuleLoader__.load({
       add: '新增工作树',
       remove: '删除',
       unbound: '未绑定',
+      headerWorkspace: '工作区',
+      headerBranch: '分支',
+      headerNoGit: '该项目没有初始化 git',
+      openPanel: '打开工作树面板',
       autoCommitOn: '自动提交',
       autoCommitOff: '手动提交',
       autoCommitHint: '自动提交：会话做完需求自己提交并推送。手动提交：你自己提交；工作树有未提交改动时不允许切过去。',
@@ -856,16 +863,188 @@ window.__ModuleLoader__.load({
         error.length > 0 ? h('p', { style: Object.assign({}, hint, { color: TOKEN.error }) }, error) : null);
     }
 
+    /**
+     * The conversation header's compact switch: two pickers and a door into the page.
+     *
+     * It exists so a branch can be changed without leaving the conversation. Creating,
+     * merging and deleting stay on the page — this popover deliberately does one thing.
+     */
+    function HeaderSwitch(props) {
+      const t = props.t;
+      const post = props.post;
+      const workspaces = props.workspaces;
+      const [open, setOpen] = React.useState(false);
+      const [root, setRoot] = React.useState('');
+      const [info, setInfo] = React.useState(null);
+      const [busy, setBusy] = React.useState(false);
+      const [error, setError] = React.useState('');
+      const box = React.useRef(null);
+
+      const snapshot = workspaces !== undefined && workspaces.list !== undefined
+        ? React.useSyncExternalStore(workspaces.list.subscribe, workspaces.list.getSnapshot)
+        : null;
+      const items = snapshot !== null && Array.isArray(snapshot.items) ? snapshot.items : [];
+      const sessionId = typeof props.sessionId === 'string' ? props.sessionId : '';
+
+      // Open on the workspace that owns this session; otherwise the first one.
+      React.useEffect(() => {
+        if (root !== '' || items.length === 0) return;
+        const owner = items.find((item) => Array.isArray(item.sessionIds) && item.sessionIds.indexOf(sessionId) !== -1);
+        const chosen = owner === undefined ? items[0] : owner;
+        setRoot(String(chosen.path || ''));
+      }, [items, root, sessionId]);
+
+      const reload = React.useCallback(async () => {
+        if (root === '' || typeof post !== 'function') return;
+        const result = await post('list', {}, root);
+        if (result.ok !== true) {
+          setInfo(null);
+          setError(errorText(t, result.error));
+          return;
+        }
+        setInfo(result.data);
+        setError('');
+      }, [root, post, t]);
+
+      React.useEffect(() => {
+        if (open) void reload();
+      }, [open, reload]);
+
+      // The header has nowhere else to dismiss from: outside click and Escape close it.
+      React.useEffect(() => {
+        if (!open) return undefined;
+        const onDown = (event) => {
+          if (box.current !== null && box.current.contains(event.target)) return;
+          setOpen(false);
+        };
+        const onKey = (event) => {
+          if (event.key === 'Escape') setOpen(false);
+        };
+        document.addEventListener('mousedown', onDown);
+        document.addEventListener('keydown', onKey);
+        return () => {
+          document.removeEventListener('mousedown', onDown);
+          document.removeEventListener('keydown', onKey);
+        };
+      }, [open]);
+
+      const listed = info !== null && info.isGit === true;
+      const base = listed && typeof info.base === 'string' ? info.base : '';
+      const preview = listed && typeof info.preview === 'string' ? info.preview : '';
+      const onBranch = listed && typeof info.currentBranch === 'string' ? info.currentBranch : '';
+      const head = listed && typeof info.head === 'string' ? info.head : '';
+      const current = onBranch !== '' ? onBranch : (preview !== '' ? preview : base);
+      const rows = listed && Array.isArray(info.worktrees) ? info.worktrees : [];
+      const branches = base === '' ? [] : [{ value: base, label: base + ' · ' + t('mainLine') }]
+        .concat(rows.map((row) => String(row.branch || '')).filter((branch) => branch !== '' && branch !== base).map((branch) => ({ value: branch, label: branch })));
+      // Same rule as the page: only the checked-out branch is labelled with a commit.
+      const branchOptions = head === ''
+        ? branches
+        : branches.map((option) => (option.value === current ? { value: option.value, label: option.label + ' (' + head + ')' } : option));
+      const workspaceOptions = items.map((item) => ({ value: String(item.path || ''), label: String(item.title || '') || baseName(item.path) }));
+
+      const pickBranch = async (next) => {
+        setBusy(true);
+        setError('');
+        const result = await post('switch', { branch: next }, root);
+        if (result.ok === true) await reload();
+        else setError(errorText(t, result.error));
+        setBusy(false);
+      };
+
+      const labelStyle = { display: 'grid', gap: 6, fontSize: 11, lineHeight: '16px', color: TOKEN.labelTertiary };
+      return h('div', { ref: box, style: { position: 'relative', display: 'inline-flex' } },
+        h('button', Object.assign({
+          type: 'button',
+          style: {
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 28,
+            height: 28,
+            padding: 0,
+            border: 0,
+            borderRadius: 28,
+            background: 'transparent',
+            color: TOKEN.labelSecondary,
+            cursor: 'pointer',
+          },
+          title: t('title') + (current === '' ? '' : ' · ' + current),
+          'aria-haspopup': 'dialog',
+          'aria-expanded': open ? 'true' : 'false',
+          onClick: () => setOpen(!open),
+        }, hoverable('secondary')), h(WorktreeIcon, { size: 16 })),
+        open
+          ? h('div', {
+            role: 'dialog',
+            'aria-label': t('title'),
+            style: {
+              position: 'absolute',
+              top: 'calc(100% + 8px)',
+              right: 0,
+              zIndex: 1200,
+              display: 'grid',
+              gap: 12,
+              boxSizing: 'border-box',
+              width: 280,
+              padding: 14,
+              borderRadius: TOKEN.radiusXl,
+              border: '.5px solid ' + TOKEN.cardStroke,
+              background: TOKEN.dialogFill,
+              boxShadow: TOKEN.elevation,
+              color: TOKEN.labelPrimary,
+            },
+          },
+            h('span', { style: { fontSize: 12, fontWeight: 600 } }, t('title')),
+            h('label', { style: labelStyle },
+              t('headerWorkspace'),
+              h(Select, {
+                value: root,
+                options: workspaceOptions,
+                disabled: workspaceOptions.length === 0 || busy,
+                wrapperStyle: { width: '100%' },
+                controlStyle: { width: '100%', height: 30, fontSize: 12 },
+                onChange: (event) => setRoot(event.target.value),
+              })),
+            info !== null && info.isGit !== true
+              ? h('p', { style: { margin: 0, fontSize: 11, lineHeight: '16px', color: TOKEN.labelTertiary } }, t('headerNoGit'))
+              : h('label', { style: labelStyle },
+                t('headerBranch'),
+                h(Select, {
+                  value: current,
+                  options: branchOptions,
+                  disabled: busy || branchOptions.length === 0,
+                  wrapperStyle: { width: '100%' },
+                  controlStyle: { width: '100%', height: 30, fontSize: 12 },
+                  onChange: (event) => void pickBranch(event.target.value),
+                })),
+            error === '' ? null : h('p', { style: { margin: 0, fontSize: 11, lineHeight: '16px', color: TOKEN.error } }, error),
+            h('button', {
+              type: 'button',
+              style: {
+                justifySelf: 'start',
+                padding: 0,
+                border: 0,
+                background: 'transparent',
+                color: TOKEN.buttonFill,
+                font: 'inherit',
+                fontSize: 12,
+                cursor: 'pointer',
+              },
+              onClick: () => {
+                setOpen(false);
+                if (typeof props.openPanel === 'function') props.openPanel();
+              },
+            }, t('openPanel')))
+          : null);
+    }
+
     function Panel(props) {
       const t = props.t;
       const actions = props.actions;
-      // The same page renders in two containers: a settings section (the shell
-      // already pads it) and the main panel (a full-width page that needs its own
-      // reading width, otherwise a 1400px window spreads five columns into soup).
-      const page = props.variant === 'page';
-      // A full page owns its scroll area: the shell's main panel clips overflow, so
-      // this follows the pattern the built-in management pages use — a flex column
-      // whose middle row scrolls, with a 960px reading column inside it.
+      // This is a page, not a settings block: the shell's main panel clips overflow,
+      // so the page owns its scroll area — the pattern the built-in management pages
+      // use, a flex column whose middle row scrolls around a 960px reading column.
       const pageOuterStyle = {
         display: 'flex',
         flexDirection: 'column',
@@ -879,11 +1058,9 @@ window.__ModuleLoader__.load({
       };
       const pageScrollStyle = { flex: '1', minHeight: 0, overflowY: 'auto', scrollbarGutter: 'stable' };
       const pageContentStyle = { maxWidth: 960, margin: '0 auto', boxSizing: 'border-box', padding: '0 clamp(24px, 4vw, 48px) 48px' };
-      const sectionStyle = { display: 'grid', gap: 0, padding: '2px 0 12px' };
-      /** Wraps the page body in the container its hosting slot expects. */
-      const shell = (children) => (page
-        ? h('div', { style: pageOuterStyle }, h('div', { style: pageScrollStyle }, h('div', { style: pageContentStyle }, children)))
-        : h('div', { style: sectionStyle }, children));
+      /** The page frame: fixed outer column, scrolling middle, reading column inside. */
+      const shell = (children) => h('div', { style: pageOuterStyle },
+        h('div', { style: pageScrollStyle }, h('div', { style: pageContentStyle }, children)));
       const state = React.useSyncExternalStore(props.store.subscribe, props.store.getSnapshot);
       const [notice, setNotice] = React.useState(null);
       const [dialog, setDialog] = React.useState(null);
@@ -1048,20 +1225,10 @@ window.__ModuleLoader__.load({
       }
 
       const header = h('header', {
-        style: {
-          display: 'grid',
-          gap: 4,
-          padding: page ? 'calc(28px + var(--dsh-frame-top-clearance, 0px)) 0 20px' : '0 0 12px',
-        },
+        style: { display: 'grid', gap: 4, padding: 'calc(28px + var(--dsh-frame-top-clearance, 0px)) 0 20px' },
       },
-        h(page ? 'h1' : 'h2', {
-          style: {
-            margin: 0,
-            fontSize: page ? 20 : 16,
-            fontWeight: page ? 500 : 600,
-            lineHeight: page ? '28px' : '24px',
-            color: TOKEN.labelPrimary,
-          },
+        h('h1', {
+          style: { margin: 0, fontSize: 20, fontWeight: 500, lineHeight: '28px', color: TOKEN.labelPrimary },
         }, t('title')),
         h('p', { style: Object.assign({}, hint, { fontSize: 12.5 }) }, t('description')));
 
@@ -1165,10 +1332,8 @@ window.__ModuleLoader__.load({
         }, hoverable('secondary')), '+ ' + t('add')),
         h('span', { style: hint }, String(worktrees.length) + ' ' + t('worktreeCount')));
 
-      return h('div', { style: page ? pageOuterStyle : sectionStyle },
-        page
-          ? h('div', { style: pageScrollStyle }, h('div', { style: pageContentStyle }, header, toolbar, banners, tableArea, footer))
-          : [header, toolbar, banners, tableArea, footer],
+      return h('div', { style: pageOuterStyle },
+        h('div', { style: pageScrollStyle }, h('div', { style: pageContentStyle }, header, toolbar, banners, tableArea, footer)),
         overlay);
     }
 
@@ -1441,16 +1606,11 @@ window.__ModuleLoader__.load({
         };
       }, 'hbs-worktree: service subscriptions');
 
-      // A first-class Settings section: it gets the sidebar entry, and the page
-      // owns its pickers, table, and dialogs. The section carries no config of
-      // its own, so `inject` stays empty and the page receives its store and
-      // actions through the closure below.
       // The entrance people actually use: a panel in the left sidebar (the same
       // rail as Tasks and Plugins). The sidebar entry only supplies an icon and a
       // label; clicking it makes the layout select the `main` entry registered
       // under the same id, which renders the full page.
-      const section = () => h(Panel, { t: t, store: store, actions: actions });
-      const page = () => h(Panel, { t: t, store: store, actions: actions, variant: 'page' });
+      const page = () => h(Panel, { t: t, store: store, actions: actions });
 
       ctx.effect(() => ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
         name: 'sidebar.panellist',
@@ -1467,16 +1627,22 @@ window.__ModuleLoader__.load({
         inject: () => ({}),
       }, page)), 'hbs-worktree: main panel');
 
-      // Kept as a fallback: deployments that do not render the sidebar rail still
-      // expose Settings, and the page is the same component.
-      ctx.effect(() => ctx.slots.inject(SLOT, () => ctx.slots.register({
-        name: SLOT,
-        id: 'hbs-worktree',
-        order: 14,
-        label: () => t('title'),
+      // A compact switch in the conversation header — two pickers and nothing else —
+      // for the case where the page is not open. The page remains the real workspace.
+      ctx.effect(() => ctx.slots.inject('conversation.session.header.utilities', () => ctx.slots.register({
+        name: 'conversation.session.header.utilities',
+        id: PANEL_ID,
+        order: -8,
         locale: NS,
-        inject: () => ({}),
-      }, section)), 'hbs-worktree: settings section');
+        inject: () => ({
+          post: post,
+          workspaces: workspaces,
+          openPanel: () => {
+            const layout = ctx.get('layout');
+            if (layout !== undefined && typeof layout.selectPanel === 'function') layout.selectPanel(PANEL_ID);
+          },
+        }),
+      }, HeaderSwitch)), 'hbs-worktree: header switch');
     }
 
     return { inject: inject, apply: apply };

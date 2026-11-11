@@ -56,8 +56,10 @@ const SESSIONS = {
 
 /** `--preview` renders the detached-preview state instead of the normal one. */
 const PREVIEW = process.argv.includes('--preview');
-/** `--page` renders the left-sidebar page (main slot) instead of the settings section. */
-const PAGE = process.argv.includes('--page');
+/** `--header` renders the conversation-header switch with its popover open. */
+const HEADER = process.argv.includes('--header');
+/** The page is the only page-shaped surface now; the flag stays harmless for old commands. */
+const PAGE = !HEADER;
 
 const REPO = PREVIEW
   ? { root: '/repo', isGit: true, base: 'feature/tm/v-3.58.0', preview: 'dev-tm-test', currentBranch: null, detached: true, dirty: false, head: '49ab12c' }
@@ -75,7 +77,12 @@ const LIST_PREVIEW = [
 
 const LIST = { ...REPO, worktrees: PREVIEW ? LIST_PREVIEW : LIST_NORMAL };
 
-/** Mount the real client module against fixtures and return the serialised DOM. */
+/**
+ * Mount the real client module against fixtures and return the serialised DOM.
+ *
+ * The panel's preview poller is a live `setInterval`, so the window is closed right
+ * after serialising; otherwise the timer keeps Node alive and the script never exits.
+ */
 async function render() {
   const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url: 'http://127.0.0.1:51013/' });
   const { window } = dom;
@@ -91,14 +98,15 @@ async function render() {
   });
 
   const store = (snapshot) => ({ getSnapshot: () => snapshot, subscribe: () => () => {} });
-  let renderer;
   let pageRenderer;
+  let headerRegistration;
   // The page registers its own dictionaries; bind to the real English one so the
   // screenshot shows labels instead of dictionary keys.
   let dictionaries = { en: {} };
+  const boundT = (key) => (dictionaries.en && dictionaries.en[key] !== undefined ? dictionaries.en[key] : key);
   factory.apply({
     locale: {
-      bind: () => (key) => (dictionaries.en && dictionaries.en[key] !== undefined ? dictionaries.en[key] : key),
+      bind: () => boundT,
       register: (_namespace, dicts) => {
         dictionaries = dicts;
       },
@@ -110,7 +118,7 @@ async function render() {
       inject: (_name, run) => run(),
       register: (spec, page) => {
         if (spec.name === 'main') pageRenderer = page;
-        if (spec.name === 'settings.section') renderer = page;
+        if (spec.name === 'conversation.session.header.utilities') headerRegistration = { spec, render: page };
         return () => {};
       },
     },
@@ -123,7 +131,16 @@ async function render() {
   };
 
   const root = ReactDOM.createRoot(window.document.getElementById('root'));
-  root.render(React.createElement(PAGE ? pageRenderer : renderer));
+  if (HEADER) {
+    const injected = typeof headerRegistration.spec.inject === 'function' ? headerRegistration.spec.inject('session-shot') : {};
+    root.render(React.createElement(headerRegistration.render, Object.assign({ t: boundT }, injected)));
+    // Open the popover: the point of the screenshot is the two pickers.
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    const trigger = window.document.querySelector('[aria-haspopup="dialog"]');
+    if (trigger !== null) trigger.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  } else {
+    root.render(React.createElement(pageRenderer));
+  }
   for (let turn = 0; turn < 10; turn += 1) await new Promise((resolve) => setTimeout(resolve, 0));
   // React writes a control's current value as a DOM *property*, and serialising to
   // HTML keeps only attributes — a static <select> would then show its first option
@@ -137,11 +154,16 @@ async function render() {
   for (const input of window.document.querySelectorAll('input, textarea')) {
     if (typeof input.value === 'string' && input.value !== '') input.setAttribute('value', input.value);
   }
-  return window.document.body.innerHTML;
+  const html = window.document.body.innerHTML;
+  // Free the poller before serialising is not possible, but closing after is: any
+  // `setInterval` the page installed would otherwise keep this process alive.
+  window.close();
+  return html;
 }
 
 const STYLE = `
   html, body, #root { height: ${PAGE ? '100%' : 'auto'}; }
+  ${HEADER ? '#root { display: flex; justify-content: flex-end; align-items: flex-start; padding: 10px 120px 10px 16px; }' : ''}
   body { margin: 0; padding: ${PAGE ? '0' : '24px'}; background: ${PAGE ? 'var(--dsw-alias-bg-base, #fff)' : '#fff'}; color: #1b1b1f;
          font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; }
   :root { --dsw-alias-label-primary: #1b1b1f; --dsw-alias-label-secondary: #5c5c66;
@@ -160,7 +182,9 @@ if (chrome === undefined) {
   process.exit(0);
 }
 
-for (const [name, width, height] of PAGE
+for (const [name, width, height] of HEADER
+  ? [['header', 520, 400]]
+  : PAGE
   ? [['wide', 1180, 560], ['mid', 986, 520], ['narrow', 760, 480]]
   : [['wide', 1180, 420], ['mid', 900, 380], ['narrow', 700, 360]]) {
   const out = join(dir, `${name}.png`);
@@ -174,3 +198,6 @@ for (const [name, width, height] of PAGE
   ], { stdio: 'ignore' });
   console.log(`${name}  ${out}`);
 }
+
+// The panel keeps a preview poller alive; close the jsdom window so Node can exit.
+process.exit(0);
