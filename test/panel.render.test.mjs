@@ -270,6 +270,7 @@ describe('panel', { skip: available ? false : 'react/jsdom not resolvable' }, ()
     // The switch is a popover, not a page: opening it costs one click.
     const trigger = host.querySelector('[aria-haspopup="dialog"]');
     assert.ok(trigger !== null, 'the header entry is a button');
+    assert.match(trigger.textContent, /A/, 'the entry names the branch it is on, so it reads as an entry');
     trigger.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
     await settle();
 

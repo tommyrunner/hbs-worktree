@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.1 — 2026-11-11
+
+- The conversation-header entry now **names the branch** it is on (`⑃ dev-tm-test ▾`) instead of
+  being a bare 28px glyph. A lone icon in a row of app icons read as decoration; the label also
+  answers "which branch is the main checkout on?" without opening anything.
+
 ## 1.4.0 — 2026-11-11
 
 - **The Settings entry is gone.** The page lives in the left sidebar only; a management page

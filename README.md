@@ -101,9 +101,10 @@ npm pack          # produces hbs-worktree-<version>.tgz, install that with the p
 
 ## Header switch
 
-For changing branches without leaving the conversation: the branch icon on the right of the
-session title bar drops down exactly two pickers — **Workspace** and **Branch** — plus a door
-into the page. Creating, merging, and deleting stay on the page.
+For changing branches without leaving the conversation: the pill on the right of the session
+title bar (`⑃ dev-tm-test ▾`, the branch the main checkout is on) drops down exactly two
+pickers — **Workspace** and **Branch** — plus a door into the page. Creating, merging, and
+deleting stay on the page.
 
 ![Header switch](docs/screenshots/header.png)
 

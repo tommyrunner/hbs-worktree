@@ -65,6 +65,7 @@ window.__ModuleLoader__.load({
       add: 'New worktree',
       remove: 'Delete',
       unbound: 'Unbound',
+      headerSwitchTitle: 'Worktrees and branches',
       headerWorkspace: 'Workspace',
       headerBranch: 'Branch',
       headerNoGit: 'This project is not a git repository',
@@ -134,6 +135,7 @@ window.__ModuleLoader__.load({
       add: '新增工作树',
       remove: '删除',
       unbound: '未绑定',
+      headerSwitchTitle: '工作树与分支',
       headerWorkspace: '工作区',
       headerBranch: '分支',
       headerNoGit: '该项目没有初始化 git',
@@ -906,9 +908,11 @@ window.__ModuleLoader__.load({
         setError('');
       }, [root, post, t]);
 
+      // Load on mount, not on open: the trigger shows the branch it is on, so that
+      // label has to exist before anyone clicks.
       React.useEffect(() => {
-        if (open) void reload();
-      }, [open, reload]);
+        void reload();
+      }, [reload]);
 
       // The header has nowhere else to dismiss from: outside click and Escape close it.
       React.useEffect(() => {
@@ -959,21 +963,43 @@ window.__ModuleLoader__.load({
           style: {
             display: 'inline-flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            width: 28,
+            gap: 6,
             height: 28,
-            padding: 0,
+            maxWidth: 200,
+            padding: current === '' ? 0 : '0 9px',
+            width: current === '' ? 28 : undefined,
+            justifyContent: 'center',
             border: 0,
             borderRadius: 28,
             background: 'transparent',
             color: TOKEN.labelSecondary,
             cursor: 'pointer',
+            fontSize: 12,
+            lineHeight: '18px',
+            fontFamily: 'inherit',
           },
-          title: t('title') + (current === '' ? '' : ' · ' + current),
+          title: t('headerSwitchTitle') + (current === '' ? '' : ' · ' + current),
           'aria-haspopup': 'dialog',
           'aria-expanded': open ? 'true' : 'false',
           onClick: () => setOpen(!open),
-        }, hoverable('secondary')), h(WorktreeIcon, { size: 16 })),
+        }, hoverable('secondary')),
+          h(WorktreeIcon, { size: 14 }),
+          current === ''
+            ? null
+            : h('span', {
+              style: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 },
+            }, current),
+          h('span', {
+            'aria-hidden': 'true',
+            style: {
+              flex: 'none',
+              width: 0,
+              height: 0,
+              borderLeft: '3.5px solid transparent',
+              borderRight: '3.5px solid transparent',
+              borderTop: '4.5px solid ' + TOKEN.labelTertiary,
+            },
+          })),
         open
           ? h('div', {
             role: 'dialog',
