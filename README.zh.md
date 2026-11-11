@@ -155,11 +155,14 @@ npm pack          # 生成 hbs-worktree-<版本>.tgz，再用插件管理器安�
 
 ## 面板
 
+下面三张都是**左栏「工作树」打开的整页**（1.2 起入口在左栏，设置里保留同一页）：
+内容按 960px 阅读宽度居中，窗口变窄时左右留白收窄，表格列同比收缩。
+
 ![列表](docs/screenshots/wide.png)
 
 ![预览状态](docs/screenshots/preview.png)
 
-窄屏（700px）下工具栏不换行，下拉收窄、按钮留位：
+窄屏下工具栏不换行，下拉收窄、按钮留位：
 
 ![窄屏](docs/screenshots/narrow.png)
 

@@ -99,11 +99,15 @@ npm pack          # produces hbs-worktree-<version>.tgz, install that with the p
 
 ## Panel
 
+These are the **full page opened from the left-sidebar entry** (since 1.2 the entry lives
+there; Settings keeps the same page). Content is centred in a 960px reading column, and the
+gutters narrow with the window.
+
 ![List](docs/screenshots/wide.png)
 
 ![Preview state](docs/screenshots/preview.png)
 
-Narrow (700px) keeps the toolbar on one line:
+Narrow keeps the toolbar on one line:
 
 ![Narrow](docs/screenshots/narrow.png)
 

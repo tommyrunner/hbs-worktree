@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.1 — 2026-11-11
+
+- The full page now follows the harness's own page pattern (`TaskManagerPage`): a flex column
+  that owns its scroll area, a 960px reading column with `clamp(24px, 4vw, 48px)` gutters, the
+  top clearance for the macOS frame, and a 20px/500 title. Previously it was a settings-shaped
+  block, so in the main panel it hugged the window edge and the table sprawled.
+- `Section` and `page` share one component: `variant: 'page'` adds the scroll frame and reading
+  width, Settings keeps the compact block. Screenshots and the hero image were re-shot from the
+  page variant at 1180 / 986 / 760 px.
+
 ## 1.2.0 — 2026-11-11
 
 - The panel moved out of Settings: a **left-sidebar entry** (the same rail as Tasks and

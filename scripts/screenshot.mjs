@@ -56,6 +56,8 @@ const SESSIONS = {
 
 /** `--preview` renders the detached-preview state instead of the normal one. */
 const PREVIEW = process.argv.includes('--preview');
+/** `--page` renders the left-sidebar page (main slot) instead of the settings section. */
+const PAGE = process.argv.includes('--page');
 
 const REPO = PREVIEW
   ? { root: '/repo', isGit: true, base: 'feature/tm/v-3.58.0', preview: 'dev-tm-test', currentBranch: null, detached: true, dirty: false }
@@ -90,6 +92,7 @@ async function render() {
 
   const store = (snapshot) => ({ getSnapshot: () => snapshot, subscribe: () => () => {} });
   let renderer;
+  let pageRenderer;
   // The page registers its own dictionaries; bind to the real English one so the
   // screenshot shows labels instead of dictionary keys.
   let dictionaries = { en: {} };
@@ -103,7 +106,14 @@ async function render() {
     effect: (run) => { run(); },
     sessions: { list: store(SESSIONS) },
     workspaces: { list: store(WORKSPACES) },
-    slots: { inject: (_name, run) => run(), register: (_spec, page) => { renderer = page; return () => {}; } },
+    slots: {
+      inject: (_name, run) => run(),
+      register: (spec, page) => {
+        if (spec.name === 'main') pageRenderer = page;
+        if (spec.name === 'settings.section') renderer = page;
+        return () => {};
+      },
+    },
   }, undefined);
 
   globalThis.fetch = async (_url, init) => {
@@ -113,7 +123,7 @@ async function render() {
   };
 
   const root = ReactDOM.createRoot(window.document.getElementById('root'));
-  root.render(React.createElement(renderer));
+  root.render(React.createElement(PAGE ? pageRenderer : renderer));
   for (let turn = 0; turn < 10; turn += 1) await new Promise((resolve) => setTimeout(resolve, 0));
   // React writes a control's current value as a DOM *property*, and serialising to
   // HTML keeps only attributes — a static <select> would then show its first option
@@ -131,10 +141,11 @@ async function render() {
 }
 
 const STYLE = `
-  body { margin: 0; padding: 24px; background: #fff; color: #1b1b1f;
+  html, body, #root { height: ${PAGE ? '100%' : 'auto'}; }
+  body { margin: 0; padding: ${PAGE ? '0' : '24px'}; background: ${PAGE ? 'var(--dsw-alias-bg-base, #fff)' : '#fff'}; color: #1b1b1f;
          font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; }
   :root { --dsw-alias-label-primary: #1b1b1f; --dsw-alias-label-secondary: #5c5c66;
-          --dsw-alias-label-tertiary: #8b8b94; }
+          --dsw-alias-label-tertiary: #8b8b94; --dsw-alias-bg-base: #ffffff; }
   * { box-sizing: border-box; }
 `;
 
@@ -149,7 +160,9 @@ if (chrome === undefined) {
   process.exit(0);
 }
 
-for (const [name, width, height] of [['wide', 1180, 420], ['mid', 900, 380], ['narrow', 700, 360]]) {
+for (const [name, width, height] of PAGE
+  ? [['wide', 1180, 560], ['mid', 986, 520], ['narrow', 760, 480]]
+  : [['wide', 1180, 420], ['mid', 900, 380], ['narrow', 700, 360]]) {
   const out = join(dir, `${name}.png`);
   execFileSync(chrome, [
     '--headless=new', '--disable-gpu', '--no-sandbox', '--hide-scrollbars',

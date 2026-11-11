@@ -859,6 +859,31 @@ window.__ModuleLoader__.load({
     function Panel(props) {
       const t = props.t;
       const actions = props.actions;
+      // The same page renders in two containers: a settings section (the shell
+      // already pads it) and the main panel (a full-width page that needs its own
+      // reading width, otherwise a 1400px window spreads five columns into soup).
+      const page = props.variant === 'page';
+      // A full page owns its scroll area: the shell's main panel clips overflow, so
+      // this follows the pattern the built-in management pages use — a flex column
+      // whose middle row scrolls, with a 960px reading column inside it.
+      const pageOuterStyle = {
+        display: 'flex',
+        flexDirection: 'column',
+        width: '100%',
+        height: '100%',
+        minWidth: 0,
+        minHeight: 0,
+        overflow: 'hidden',
+        background: 'var(--dsw-alias-bg-base)',
+        color: 'var(--dsw-alias-label-primary)',
+      };
+      const pageScrollStyle = { flex: '1', minHeight: 0, overflowY: 'auto', scrollbarGutter: 'stable' };
+      const pageContentStyle = { maxWidth: 960, margin: '0 auto', boxSizing: 'border-box', padding: '0 clamp(24px, 4vw, 48px) 48px' };
+      const sectionStyle = { display: 'grid', gap: 0, padding: '2px 0 12px' };
+      /** Wraps the page body in the container its hosting slot expects. */
+      const shell = (children) => (page
+        ? h('div', { style: pageOuterStyle }, h('div', { style: pageScrollStyle }, h('div', { style: pageContentStyle }, children)))
+        : h('div', { style: sectionStyle }, children));
       const state = React.useSyncExternalStore(props.store.subscribe, props.store.getSnapshot);
       const [notice, setNotice] = React.useState(null);
       const [dialog, setDialog] = React.useState(null);
@@ -1003,14 +1028,29 @@ window.__ModuleLoader__.load({
         });
       }
 
-      const header = h('header', { style: { display: 'grid', gap: 4, padding: '0 0 12px' } },
-        h('h2', { style: { margin: 0, fontSize: 16, fontWeight: 600, lineHeight: '24px', color: TOKEN.labelPrimary } }, t('title')),
+      const header = h('header', {
+        style: {
+          display: 'grid',
+          gap: 4,
+          padding: page ? 'calc(28px + var(--dsh-frame-top-clearance, 0px)) 0 20px' : '0 0 12px',
+        },
+      },
+        h(page ? 'h1' : 'h2', {
+          style: {
+            margin: 0,
+            fontSize: page ? 20 : 16,
+            fontWeight: page ? 500 : 600,
+            lineHeight: page ? '28px' : '24px',
+            color: TOKEN.labelPrimary,
+          },
+        }, t('title')),
         h('p', { style: Object.assign({}, hint, { fontSize: 12.5 }) }, t('description')));
 
       if (state.unavailable || workspaces.length === 0) {
-        return h('div', { style: { display: 'grid', gap: 0, padding: '2px 0 12px' } },
+        return shell([
           header,
-          h('p', { style: noticeStripStyle }, state.unavailable ? t('servicesMissing') : t('noWorkspaces')));
+          h('p', { style: noticeStripStyle }, state.unavailable ? t('servicesMissing') : t('noWorkspaces')),
+        ]);
       }
 
       // One row, in reading order: what project, which branch, then the actions
@@ -1105,12 +1145,10 @@ window.__ModuleLoader__.load({
         }, hoverable('secondary')), '+ ' + t('add')),
         h('span', { style: hint }, String(worktrees.length) + ' ' + t('worktreeCount')));
 
-      return h('div', { style: { display: 'grid', gap: 0, padding: '2px 0 12px' } },
-        header,
-        toolbar,
-        banners,
-        tableArea,
-        footer,
+      return h('div', { style: page ? pageOuterStyle : sectionStyle },
+        page
+          ? h('div', { style: pageScrollStyle }, h('div', { style: pageContentStyle }, header, toolbar, banners, tableArea, footer))
+          : [header, toolbar, banners, tableArea, footer],
         overlay);
     }
 
@@ -1378,7 +1416,8 @@ window.__ModuleLoader__.load({
       // rail as Tasks and Plugins). The sidebar entry only supplies an icon and a
       // label; clicking it makes the layout select the `main` entry registered
       // under the same id, which renders the full page.
-      const page = () => h(Panel, { t: t, store: store, actions: actions });
+      const section = () => h(Panel, { t: t, store: store, actions: actions });
+      const page = () => h(Panel, { t: t, store: store, actions: actions, variant: 'page' });
 
       ctx.effect(() => ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
         name: 'sidebar.panellist',
@@ -1404,7 +1443,7 @@ window.__ModuleLoader__.load({
         label: () => t('title'),
         locale: NS,
         inject: () => ({}),
-      }, page)), 'hbs-worktree: settings section');
+      }, section)), 'hbs-worktree: settings section');
     }
 
     return { inject: inject, apply: apply };
