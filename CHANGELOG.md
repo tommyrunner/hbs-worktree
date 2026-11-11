@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.4.2 — 2026-11-11
+
+- The header switch now falls back when the slot does not hand it `t`, so a missing
+  locale binding degrades to dictionary keys instead of throwing — a throwing entry is
+  dropped silently by the slot renderer, which looks exactly like "the entry is missing".
+- `apply` logs the three registered surfaces once, so a missing entry can be told apart
+  from a stale client bundle.
+
 ## 1.4.1 — 2026-11-11
 
 - The conversation-header entry now **names the branch** it is on (`⑃ dev-tm-test ▾`) instead of

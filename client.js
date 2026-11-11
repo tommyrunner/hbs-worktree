@@ -872,7 +872,9 @@ window.__ModuleLoader__.load({
      * merging and deleting stay on the page — this popover deliberately does one thing.
      */
     function HeaderSwitch(props) {
-      const t = props.t;
+      // Slot entries receive `t` from their declared locale namespace; fall back so a
+      // missing binding degrades to keys instead of throwing the whole entry away.
+      const t = typeof props.t === 'function' ? props.t : (key) => key;
       const post = props.post;
       const workspaces = props.workspaces;
       const [open, setOpen] = React.useState(false);
@@ -1669,6 +1671,7 @@ window.__ModuleLoader__.load({
           },
         }),
       }, HeaderSwitch)), 'hbs-worktree: header switch');
+      console.info('[hbs-worktree] entries registered: sidebar, main, header');
     }
 
     return { inject: inject, apply: apply };
