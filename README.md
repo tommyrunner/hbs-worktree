@@ -91,7 +91,7 @@ npm pack          # produces hbs-worktree-<version>.tgz, install that with the p
 3. **Work in that session** — the agent edits `.worktree/dev-a` only; the main code is untouched and the status column shows whether the session is running.
    When the requirement is done the session **commits and pushes by default**: it is a separate branch, so committing cannot touch the main code, while *not* committing means a preview is refused (dirty worktree) and the work is invisible. Switch the actions dropdown to "Manual" to opt out.
 4. **Preview** — switch the branch picker to `dev-a`.
-   *Effect: the main checkout shows that branch, so a dev server runs it; "back to main line" restores the base branch.*
+   *Effect: the main checkout shows that branch, so a dev server runs it; "back to main line" restores the base branch. The picker and the banner append the checked-out commit's short SHA (`dev-a (49ab12c)`), so you know exactly which commit you are looking at.*
 5. **Merge** — pick source and target (the base branch by default).
    *Effect: plain merge; conflicts abort and list files, leaving no half-merged tree.*
 6. **Delete** — with confirmation.

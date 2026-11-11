@@ -62,6 +62,7 @@ const REPO = {
   currentBranch: 'A',
   detached: false,
   dirty: false,
+  head: '49ab12c',
 };
 
 const LIST = {
@@ -478,6 +479,22 @@ describe('panel', { skip: available ? false : 'react/jsdom not resolvable' }, ()
     const sent = calls.find((call) => call.cmd === 'switch');
     assert.ok(sent !== undefined, 'switch was sent');
     assert.equal(sent.args.branch, 'A-a');
+  });
+
+  it('shows the checked-out commit beside the previewed branch', async () => {
+    const { window } = await mount((body) => {
+      if (body.cmd === 'repo') return { ok: true, data: { ...REPO, preview: 'A-a', currentBranch: null, detached: true, head: '49ab12c' } };
+      if (body.cmd === 'list') return { ok: true, data: { ...LIST, preview: 'A-a', currentBranch: null, detached: true } };
+      return { ok: true, data: {} };
+    });
+
+    const branchPicker = [...window.document.querySelectorAll('select')][1];
+    assert.equal(branchPicker.value, 'A-a');
+    assert.equal(branchPicker.options[branchPicker.selectedIndex].textContent, 'A-a (49ab12c)');
+    // Only the checkout is labelled with a commit; other branches keep their name.
+    const baseOption = [...branchPicker.options].find((option) => option.value === 'A');
+    assert.equal(baseOption.textContent, 'A · mainLine');
+    assert.ok(window.document.body.textContent.includes('A-a (49ab12c)'), 'the preview banner names the commit too');
   });
 
   it('keeps the branch picker on the previewing branch and says so', async () => {

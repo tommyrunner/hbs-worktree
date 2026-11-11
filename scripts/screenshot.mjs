@@ -60,8 +60,8 @@ const PREVIEW = process.argv.includes('--preview');
 const PAGE = process.argv.includes('--page');
 
 const REPO = PREVIEW
-  ? { root: '/repo', isGit: true, base: 'feature/tm/v-3.58.0', preview: 'dev-tm-test', currentBranch: null, detached: true, dirty: false }
-  : { root: '/repo', isGit: true, base: 'A', preview: null, currentBranch: 'A', detached: false, dirty: false };
+  ? { root: '/repo', isGit: true, base: 'feature/tm/v-3.58.0', preview: 'dev-tm-test', currentBranch: null, detached: true, dirty: false, head: '49ab12c' }
+  : { root: '/repo', isGit: true, base: 'A', preview: null, currentBranch: 'A', detached: false, dirty: false, head: '49ab12c' };
 
 const LIST_NORMAL = [
   { branch: 'dev-tm-test', path: '/repo/.worktree/dev-tm-test', exists: true, dirty: false, ahead: 2, session: 's1', note: '把工作树的会话创建流程改成自动新建，同时保留手动 bind 的 CLI 入口', createdAt: '2026-11-10T02:00:00.000Z' },

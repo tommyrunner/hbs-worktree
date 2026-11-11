@@ -963,6 +963,16 @@ window.__ModuleLoader__.load({
       const everyBranch = base === '' ? [] : [base].concat(worktrees.map((row) => String(row.branch || '')).filter((branch) => branch !== '' && branch !== base));
       const branchOptions = base === '' ? [] : [{ value: base, label: base + ' · ' + t('mainLine') }]
         .concat(worktrees.map((row) => String(row.branch || '')).filter((branch) => branch !== '' && branch !== base).map((branch) => ({ value: branch, label: branch })));
+      // The checkout is what the picker claims to show, so say which commit that is:
+      // `v-3.58-test (49ab12c)`. Other branches stay bare — their tip is not what is
+      // checked out, and mixing the two would be a lie.
+      const headShort = repo !== null && typeof repo.head === 'string' ? repo.head : '';
+      const markedBranchOptions = headShort === ''
+        ? branchOptions
+        : branchOptions.map((option) => (option.value === branchChoice
+          ? { value: option.value, label: option.label + ' (' + headShort + ')' }
+          : option));
+
       const workspaceOptions = workspaces.map((item) => ({
         value: String(item.workspaceId || ''),
         label: String(item.title || '') || baseName(item.path) || String(item.workspaceId || ''),
@@ -1072,7 +1082,7 @@ window.__ModuleLoader__.load({
             wrapperStyle: { flex: '1 1 auto' },
             controlStyle: fieldSelectStyle,
             onChange: (event) => void onPickBranch(event.target.value),
-            options: branchOptions,
+            options: markedBranchOptions,
           })) : null,
         h('span', { style: toolbarActionsStyle },
           worktrees.length > 0 && !nonGit ? h('button', Object.assign({
@@ -1090,7 +1100,8 @@ window.__ModuleLoader__.load({
       if (previewing) {
         banners.push(h('div', { key: 'preview', style: bannerStyle },
           h('p', { style: Object.assign({}, bannerText, { color: TOKEN.labelSecondary }) },
-            h('strong', { style: { fontWeight: 600, color: TOKEN.labelPrimary } }, t('previewing') + ' · ' + preview + '：'),
+            h('strong', { style: { fontWeight: 600, color: TOKEN.labelPrimary } },
+              t('previewing') + ' · ' + preview + (repo !== null && typeof repo.head === 'string' ? ' (' + repo.head + ')' : '') + '：'),
             ' ' + t('previewHint')),
           h('button', Object.assign({
             type: 'button',

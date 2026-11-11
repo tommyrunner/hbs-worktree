@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.2 — 2026-11-11
+
+- The branch picker now names the commit it is on: `dev-tm-test (49ab12c)`. A previewed
+  worktree branch leaves the main checkout detached, and the branch name alone did not say
+  which commit was being looked at. The preview banner carries the same short SHA.
+- `repo` returns `head` (the short SHA the main checkout sits on); only the selected option
+  gets the suffix, so other branches never pretend to be at that commit.
+
 ## 1.2.1 — 2026-11-11
 
 - The full page now follows the harness's own page pattern (`TaskManagerPage`): a flex column
