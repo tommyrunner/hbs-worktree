@@ -23,9 +23,10 @@ const USAGE = `用法: hbs-wt <命令> [参数] [选项]
 命令:
   repo                        当前项目状态（是否 git 仓库、主业务分支、当前分支）
   list                        列出全部工作树
-  add <分支>                  从主业务分支建一个工作树到 worktree/<分支>
+  add <分支>                  从主业务分支建一个工作树到 .worktree/<分支>
   remove <分支>               删除工作树及其分支（--force 丢弃未合并提交）
   switch <分支>               把主业务目录切到该分支
+  update <分支>               改工作树设置（--auto-commit on|off）
   follow                     预览中的分支有新提交时，把主业务目录跟到最新
   merge <源分支>              把源分支合并到目标分支（--into，默认主业务分支）
   bind <分支>                 把当前会话绑定到该工作树
@@ -38,6 +39,7 @@ const USAGE = `用法: hbs-wt <命令> [参数] [选项]
   --session <id>              显式指定会话，默认取 DSH_SESSION_ID
   --note <文本>               add 时的备注
   --into <分支>               merge 的目标分支，默认主业务分支
+  --auto-commit <on|off>      update 时设置是否让会话自动提交，默认 on
   --force                     remove 时允许丢弃未合并提交
   --json                      输出 JSON 信封`;
 
@@ -53,6 +55,7 @@ function parse(argv) {
     else if (token === '--session') options.session = argv[++index];
     else if (token === '--note') options.note = argv[++index];
     else if (token === '--into') options.into = argv[++index];
+    else if (token === '--auto-commit') options.autoCommit = argv[++index];
     else if (token.startsWith('--')) throw new Error(`未知选项: ${token}`);
     else positionals.push(token);
   }
@@ -74,6 +77,15 @@ function argsOf(cmd, positionals, options) {
     case 'unbind':
     case 'switch':
       args.branch = positionals[0];
+      break;
+    case 'update':
+      args.branch = positionals[0];
+      if (options.autoCommit !== undefined) {
+        if (options.autoCommit !== 'on' && options.autoCommit !== 'off') {
+          throw new Error('--auto-commit 只接受 on 或 off');
+        }
+        args.autoCommit = options.autoCommit === 'on';
+      }
       break;
     case 'merge':
       args.from = positionals[0];
@@ -112,6 +124,8 @@ function human(cmd, data) {
         : `主业务目录已切到 ${data.branch}`;
     case 'merge':
       return `${data.from} 已合并到 ${data.into}`;
+    case 'update':
+      return `工作树 ${data.branch} 的自动提交已设为${data.autoCommit ? '开' : '关'}`;
     case 'bind':
       return `会话 ${data.session} 已绑定 ${data.branch}${data.movedFrom ? `（从 ${data.movedFrom} 移过来）` : ''}`;
     case 'unbind':
@@ -143,15 +157,17 @@ if (cmd === undefined || cmd === '--help' || cmd === '-h') {
 }
 
 let parsed;
+let args;
 try {
   parsed = parse(rest);
+  args = argsOf(cmd, parsed.positionals, parsed.options);
 } catch (error) {
   console.error(error.message);
   console.error(USAGE);
   process.exit(1);
 }
 
-const envelope = await runCommand(cmd, argsOf(cmd, parsed.positionals, parsed.options), {
+const envelope = await runCommand(cmd, args, {
   root: parsed.options.root ?? process.cwd(),
 });
 

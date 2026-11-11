@@ -180,10 +180,14 @@ hbs-wt add dev-a --note 详情页改版  # 建工作树
 hbs-wt bind dev-a                  # 把当前会话绑到工作树
 hbs-wt env                         # 本会话该在哪个目录干活
 hbs-wt switch dev-a                # 主业务目录预览 dev-a
+hbs-wt follow                      # 预览中的分支有新提交时，把主目录跟到最新
+hbs-wt update dev-a --auto-commit off   # 关掉这条工作树的自动提交
 hbs-wt merge dev-a --into main     # 合并
 hbs-wt remove dev-a                # 删工作树与分支
 hbs-wt prune                       # 清理僵尸 worktree 元数据
 ```
+
+`update` 与面板操作列的下拉等价；`follow` 就是面板在预览态每 4 秒自动做的事，手动跑一次也可以。
 
 `--json` 输出与面板共用同一套信封（`{ok, data}` / `{ok, error}`）。
 
@@ -204,9 +208,11 @@ hbs-wt prune                       # 清理僵尸 worktree 元数据
 
 ```
 .worktree/
-├── .hbs-state.json     # { base, preview, entries: { 分支: { session, note, createdAt } } }
+├── .hbs-state.json     # { base, preview, entries: { 分支: { session, note, autoCommit, createdAt } } }
 └── <分支>/             # 工作树本体
 ```
+
+`autoCommit` 默认 `true`（会话收尾自己提交）；`preview` 记录当前预览的分支，主目录回到普通分支后会被自动清掉。
 
 工作树是否存在以 `git worktree list` 为准；`.hbs-state.json` 丢了只会丢会话绑定和备注，不会丢代码。
 
@@ -259,12 +265,12 @@ hbs-wt prune                       # 清理僵尸 worktree 元数据
 ## 开发
 
 ```bash
-npm run check        # 静态检查 + 一次真实 git 往返（22 项）
-npm test             # 引擎 18 + 宿主 5
+npm run check        # 静态检查 + 一次真实 git 往返（24 项）
+npm test             # 引擎 24 + 宿主 5
 npm run shot         # 用固定数据渲染面板并截图（需要 react/react-dom/jsdom 在 NODE_PATH）
 ```
 
-面板渲染测试（14 项）需要 React 与 jsdom，只是测试期依赖，插件本身零依赖：
+面板渲染测试（20 项）需要 React 与 jsdom，只是测试期依赖，插件本身零依赖：
 
 ```bash
 NODE_PATH=<装着 react react-dom jsdom 的目录> node --test test/panel.render.test.mjs
@@ -274,7 +280,7 @@ NODE_PATH=<装着 react react-dom jsdom 的目录> node --test test/panel.render
 
 ```
 index.js                 宿主半边：注册 skill provider + 暴露 /hbs-worktree/api
-client.js                浏览器半边：工作树面板（左栏入口 + main 整页 + 设置的兜底入口）
+client.js                浏览器半边：工作树面板（左栏入口 + main 整页）
 lib/engine.js            引擎（命令表 + 状态机），不依赖任何 Harness 包
 lib/git.js               git 命令封装
 lib/state.js             .worktree/.hbs-state.json 与 info/exclude

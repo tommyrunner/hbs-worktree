@@ -50,13 +50,13 @@ git 命令直接在主业务代码目录里执行。本文件覆盖 v1 中冲突
 
 | 命令 | 参数 | 返回 data |
 | --- | --- | --- |
-| `repo` | `{}` | `{ root, isGit, base, preview, currentBranch, detached, dirty }` |
-| `list` | `{}` | `{ root, isGit, base, preview, currentBranch, detached, dirty, worktrees: [row] }` |
+| `repo` | `{}` | `{ root, isGit, base, preview, currentBranch, head, detached, dirty }` |
+| `list` | `{}` | `{ root, isGit, base, preview, currentBranch, head, detached, dirty, worktrees: [row] }` |
 | `add` | `{ branch, session?, note?, autoCommit? }` | `{ worktree: row }` |
 | `update` | `{ branch, autoCommit }` | `{ branch, autoCommit }` |
 | `follow` | — | `{ branch, changed, head, blocked? }` |
 | `remove` | `{ branch, force? }` | `{ branch, removed: true }` |
-| `switch` | `{ branch }` | `{ branch, base, preview, changed, detached }` |
+| `switch` | `{ branch }` | `{ branch, base, preview, currentBranch, changed, detached }` |
 | `merge` | `{ from, into }` | `{ from, into, merged: true }` |
 | `bind` | `{ branch, session }` | `{ branch, session }` |
 | `unbind` | `{ branch }` | `{ branch }` |
@@ -64,6 +64,8 @@ git 命令直接在主业务代码目录里执行。本文件覆盖 v1 中冲突
 | `prune` | `{}` | `{ pruned: true }` |
 
 `root` 由调用方在请求体里给出（面板取当前 Harness 工作区的 `path`；CLI 取当前目录）。
+`head` 是主仓库当前检出的短 SHA（预览时是 detached HEAD 所在提交），面板用它在下拉里标注
+`分支名 (49ab12c)`——只标注当前检出的那一项。
 
 ### row
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.5.1 — 2026-11-11
+
+- Docs pass over everything the last rounds changed: the entry point (left sidebar, nothing
+  else), the actions column (auto-commit picker), the commit SHA in the picker, preview
+  following, and the seven skill rules.
+- CLI parity: `hbs-wt update <branch> --auto-commit on|off` joins `follow`; argument errors
+  now print the usage instead of a stack trace, and the `add` help line says `.worktree/`.
+- The package description no longer claims the panel lives in Settings.
+
 ## 1.5.0 — 2026-11-11
 
 - Removed the session-header switch. The left sidebar is the only entrance again: one

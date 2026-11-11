@@ -120,10 +120,14 @@ hbs-wt add dev-a --note rewrite    # create a worktree
 hbs-wt bind dev-a                  # bind the current session
 hbs-wt env                         # where this session should work
 hbs-wt switch dev-a                # preview it in the main checkout
+hbs-wt follow                      # move the preview to the branch tip
+hbs-wt update dev-a --auto-commit off   # opt one worktree out of auto-commit
 hbs-wt merge dev-a --into main     # merge
 hbs-wt remove dev-a                # remove worktree and branch
 hbs-wt prune                       # drop stale worktree metadata
 ```
+
+`update` is the CLI twin of the actions dropdown; `follow` is what the page polls while previewing.
 
 `--json` prints the same envelope the panel uses (`{ok, data}` / `{ok, error}`).
 
@@ -133,7 +137,7 @@ The `hbs-worktree` skill ships with the plugin and states seven rules: confirm t
 
 ## State
 
-`<project>/.worktree/.hbs-state.json` holds `{ base, preview, entries: { branch: { session, note, createdAt } } }`. Losing it loses bindings and notes, never code — the worktree list comes from git.
+`<project>/.worktree/.hbs-state.json` holds `{ base, preview, entries: { branch: { session, note, autoCommit, createdAt } } }`. `autoCommit` defaults to true; a stale `preview` is dropped as soon as the main checkout is back on a branch. Losing the file loses bindings and notes, never code — the worktree list comes from git.
 
 ## FAQ
 
@@ -154,11 +158,11 @@ The `hbs-worktree` skill ships with the plugin and states seven rules: confirm t
 
 ```bash
 npm run check        # static checks + one live git round-trip
-npm test             # engine and host tests
+npm test             # 24 engine + 5 host tests
 npm run shot         # render the panel against fixtures and screenshot it
 ```
 
-Panel render tests need React and jsdom (test-only; the plugin has no dependencies):
+20 panel render tests need React and jsdom (test-only; the plugin has no dependencies):
 
 ```bash
 NODE_PATH=<dir with react, react-dom, jsdom> node --test test/panel.render.test.mjs
